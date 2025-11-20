@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civil War RTS - Regiments</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <h1>Regiments</h1>
+            <h2>Civil War RTS</h2>
+            <div class="menu-buttons">
+                <button id="btn-map-editor">Map Editor</button>
+                <button id="btn-scenario-editor">Scenario Editor</button>
+                <button id="btn-battle">Battle Mode</button>
+                <button id="btn-quick-battle">Quick Battle</button>
+            </div>
+        </div>
+
+        <!-- Map Editor Screen -->
+        <div id="map-editor-screen" class="screen">
+            <div class="editor-toolbar">
+                <h3>Map Editor</h3>
+                <div class="brush-tools">
+                    <button id="brush-elevation" class="brush-btn active" data-brush="elevation">Elevation</button>
+                    <button id="brush-water" class="brush-btn" data-brush="water">Water</button>
+                    <button id="brush-foliage" class="brush-btn" data-brush="foliage">Foliage</button>
+                </div>
+                <div class="brush-size">
+                    <label>Brush Size: <span id="brush-size-value">20</span></label>
+                    <input type="range" id="brush-size" min="5" max="100" value="20">
+                </div>
+                <div class="editor-actions">
+                    <button id="btn-generate-map">Generate Terrain</button>
+                    <button id="btn-random-map">Random Map</button>
+                    <button id="btn-clear-map">Clear</button>
+                    <button id="btn-save-map">Save Map</button>
+                    <button id="btn-back-from-map">Back to Menu</button>
+                </div>
+            </div>
+            <canvas id="map-editor-canvas"></canvas>
+        </div>
+
+        <!-- Scenario Editor Screen -->
+        <div id="scenario-editor-screen" class="screen">
+            <div class="editor-toolbar">
+                <h3>Scenario Editor</h3>
+                <div class="unit-tools">
+                    <button id="unit-infantry" class="unit-btn active" data-unit="infantry">Infantry</button>
+                    <button id="unit-cavalry" class="unit-btn" data-unit="cavalry">Cavalry</button>
+                    <button id="unit-artillery" class="unit-btn" data-unit="artillery">Artillery</button>
+                    <button id="unit-depot" class="unit-btn" data-unit="depot">Depot</button>
+                    <button id="unit-camp" class="unit-btn" data-unit="camp">Camp</button>
+                </div>
+                <div class="player-select">
+                    <label>Player:</label>
+                    <select id="player-select">
+                        <option value="1">Player 1 (Blue)</option>
+                        <option value="2">Player 2 (Red)</option>
+                    </select>
+                </div>
+                <div class="editor-actions">
+                    <button id="btn-delete-unit">Delete Mode</button>
+                    <button id="btn-save-scenario">Save Scenario</button>
+                    <button id="btn-load-scenario">Load Scenario</button>
+                    <button id="btn-start-battle">Start Battle</button>
+                    <button id="btn-back-from-scenario">Back to Menu</button>
+                </div>
+            </div>
+            <canvas id="scenario-editor-canvas"></canvas>
+        </div>
+
+        <!-- Battle Screen -->
+        <div id="battle-screen" class="screen">
+            <div id="battle-hud">
+                <div id="minimap-container">
+                    <canvas id="minimap"></canvas>
+                </div>
+                <div id="unit-info-panel">
+                    <h4>Unit Info</h4>
+                    <div id="unit-details">
+                        <p>Select a unit</p>
+                    </div>
+                </div>
+                <div id="battle-controls">
+                    <button id="btn-dig-in">Dig In</button>
+                    <button id="btn-hold-line">Hold Line</button>
+                    <button id="btn-retreat">Retreat</button>
+                    <div class="toggle-controls">
+                        <label><input type="checkbox" id="toggle-supply-lines"> Supply Lines</label>
+                        <label><input type="checkbox" id="toggle-elevation"> Elevation</label>
+                    </div>
+                </div>
+                <div id="game-speed">
+                    <button id="btn-pause">Pause</button>
+                    <button id="btn-normal-speed">1x</button>
+                    <button id="btn-fast-speed">2x</button>
+                </div>
+                <button id="btn-back-from-battle">Exit Battle</button>
+            </div>
+            <canvas id="battle-canvas"></canvas>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+/* Civil War RTS - Historical Map Aesthetic */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', serif;
+    background-color: #2c2416;
+    color: #f4e4bc;
+    overflow: hidden;
+    height: 100vh;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+/* Screens */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* Main Menu */
+#main-menu {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3d2914 0%, #2c2416 100%);
+}
+
+#main-menu h1 {
+    font-size: 4rem;
+    color: #d4a574;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.3rem;
+}
+
+#main-menu h2 {
+    font-size: 1.5rem;
+    color: #a89070;
+    margin-bottom: 3rem;
+    font-style: italic;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.menu-buttons button {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 250px;
+}
+
+.menu-buttons button:hover {
+    background: #7a5f40;
+    border-color: #d4a574;
+    transform: scale(1.05);
+}
+
+/* Editor Screens */
+#map-editor-screen,
+#scenario-editor-screen {
+    flex-direction: row;
+}
+
+.editor-toolbar {
+    width: 250px;
+    background: #3d2914;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-right: 3px solid #5a4630;
+    overflow-y: auto;
+}
+
+.editor-toolbar h3 {
+    color: #d4a574;
+    text-align: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #5a4630;
+}
+
+/* Brush Tools */
+.brush-tools,
+.unit-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.brush-btn,
+.unit-btn {
+    padding: 0.75rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.brush-btn:hover,
+.unit-btn:hover {
+    background: #7a5f40;
+}
+
+.brush-btn.active,
+.unit-btn.active {
+    background: #8b7355;
+    border-color: #d4a574;
+}
+
+#brush-elevation.active {
+    background: #8b6914;
+    border-color: #d4a574;
+}
+
+#brush-water.active {
+    background: #2e5984;
+    border-color: #6ca6cd;
+}
+
+#brush-foliage.active {
+    background: #3d5a3d;
+    border-color: #6b8e23;
+}
+
+/* Brush Size */
+.brush-size {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.brush-size label {
+    font-size: 0.9rem;
+    color: #a89070;
+}
+
+.brush-size input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Player Select */
+.player-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.player-select label {
+    font-size: 0.9rem;
+    color: #a89070;
+}
+
+.player-select select {
+    padding: 0.5rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+}
+
+/* Editor Actions */
+.editor-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.editor-actions button {
+    padding: 0.75rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.editor-actions button:hover {
+    background: #7a5f40;
+    border-color: #d4a574;
+}
+
+/* Canvas */
+canvas {
+    flex: 1;
+    background: #f4e4bc;
+    cursor: crosshair;
+}
+
+/* Battle Screen */
+#battle-screen {
+    flex-direction: row;
+}
+
+#battle-hud {
+    width: 280px;
+    background: #3d2914;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-right: 3px solid #5a4630;
+    overflow-y: auto;
+}
+
+/* Minimap */
+#minimap-container {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #2c2416;
+    border: 2px solid #5a4630;
+}
+
+#minimap {
+    width: 100%;
+    height: 100%;
+}
+
+/* Unit Info Panel */
+#unit-info-panel {
+    background: #2c2416;
+    border: 2px solid #5a4630;
+    padding: 0.75rem;
+}
+
+#unit-info-panel h4 {
+    color: #d4a574;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+#unit-details {
+    font-size: 0.8rem;
+    color: #a89070;
+}
+
+#unit-details p {
+    margin: 0.25rem 0;
+}
+
+.stat-bar {
+    height: 8px;
+    background: #5a4630;
+    border-radius: 4px;
+    margin: 0.25rem 0;
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.stat-bar-fill.strength { background: #d4a574; }
+.stat-bar-fill.morale { background: #6b8e23; }
+.stat-bar-fill.ammo { background: #cd853f; }
+.stat-bar-fill.food { background: #8fbc8f; }
+
+/* Battle Controls */
+#battle-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#battle-controls button {
+    padding: 0.5rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+#battle-controls button:hover {
+    background: #7a5f40;
+}
+
+.toggle-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.toggle-controls label {
+    font-size: 0.8rem;
+    color: #a89070;
+    cursor: pointer;
+}
+
+.toggle-controls input {
+    margin-right: 0.5rem;
+}
+
+/* Game Speed */
+#game-speed {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#game-speed button {
+    flex: 1;
+    padding: 0.5rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+#game-speed button:hover {
+    background: #7a5f40;
+}
+
+#game-speed button.active {
+    background: #8b7355;
+    border-color: #d4a574;
+}
+
+#btn-back-from-battle {
+    margin-top: auto;
+    padding: 0.75rem;
+    font-family: 'Georgia', serif;
+    background: #5a4630;
+    border: 2px solid #8b7355;
+    color: #f4e4bc;
+    cursor: pointer;
+}
+
+#btn-back-from-battle:hover {
+    background: #7a5f40;
+    border-color: #d4a574;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2c2416;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5a4630;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #7a5f40;
+}
+
+/* Selection box for units */
+.selection-box {
+    position: absolute;
+    border: 2px dashed #d4a574;
+    background: rgba(212, 165, 116, 0.1);
+    pointer-events: none;
+}
