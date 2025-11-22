@@ -23,7 +23,7 @@ export class MapEditor {
     resize() {
         const container = this.canvas.parentElement;
         const toolbar = container.querySelector('.editor-toolbar');
-        const toolbarWidth = toolbar ? toolbar.offsetWidth : 250;
+        const toolbarWidth = toolbar ? toolbar.offsetWidth : 300;
 
         this.canvas.width = container.offsetWidth - toolbarWidth;
         this.canvas.height = container.offsetHeight;
@@ -365,9 +365,25 @@ export class MapEditor {
     }
 
     generateRandomMap() {
-        this.state.brushData = { elevation: [], water: [], foliage: [] };
-        this.state.generateRandomMap(this.canvas.width, this.canvas.height);
-        this.render();
+        // Show loading state
+        this.ctx.fillStyle = '#f4e4bc';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#8b7355';
+        this.ctx.font = '20px Georgia';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Generating map...', this.canvas.width / 2, this.canvas.height / 2);
+
+        // Use setTimeout to allow the UI to update
+        setTimeout(() => {
+            this.state.brushData = { elevation: [], water: [], foliage: [] };
+
+            // Use a reasonable size (max 800x600) to prevent performance issues
+            const width = Math.min(800, this.canvas.width);
+            const height = Math.min(600, this.canvas.height);
+
+            this.state.generateRandomMap(width, height);
+            this.render();
+        }, 100);
     }
 
     clearMap() {

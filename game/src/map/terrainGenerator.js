@@ -308,9 +308,15 @@ export class TerrainGenerator {
             const chain = [...segments[i]];
             used.add(i);
 
+            // Limit iterations to prevent infinite loops
+            let iterations = 0;
+            const maxIterations = segments.length * 2;
             let changed = true;
-            while (changed) {
+
+            while (changed && iterations < maxIterations) {
                 changed = false;
+                iterations++;
+
                 for (let j = 0; j < segments.length; j++) {
                     if (used.has(j)) continue;
 
@@ -322,25 +328,31 @@ export class TerrainGenerator {
                         chain.unshift(seg[0]);
                         used.add(j);
                         changed = true;
+                        break; // Only add one segment per iteration
                     } else if (this.pointsClose(seg[0], end)) {
                         chain.push(seg[1]);
                         used.add(j);
                         changed = true;
+                        break;
                     } else if (this.pointsClose(seg[0], start)) {
                         chain.unshift(seg[1]);
                         used.add(j);
                         changed = true;
+                        break;
                     } else if (this.pointsClose(seg[1], end)) {
                         chain.push(seg[0]);
                         used.add(j);
                         changed = true;
+                        break;
                     }
                 }
             }
 
-            // Simplify chain
-            const simplified = this.simplifyPath(chain);
-            points.push(...simplified);
+            // Simplify chain before adding
+            if (chain.length > 1) {
+                const simplified = this.simplifyPath(chain);
+                points.push(...simplified);
+            }
         }
 
         return points;
