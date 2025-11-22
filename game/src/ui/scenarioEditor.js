@@ -23,7 +23,7 @@ export class ScenarioEditor {
     resize() {
         const container = this.canvas.parentElement;
         const toolbar = container.querySelector('.editor-toolbar');
-        const toolbarWidth = toolbar ? toolbar.offsetWidth : 250;
+        const toolbarWidth = toolbar ? toolbar.offsetWidth : 300;
 
         this.canvas.width = container.offsetWidth - toolbarWidth;
         this.canvas.height = container.offsetHeight;

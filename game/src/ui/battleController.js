@@ -42,7 +42,7 @@ export class BattleController {
     resize() {
         const container = this.canvas.parentElement;
         const hud = document.getElementById('battle-hud');
-        const hudWidth = hud ? hud.offsetWidth : 280;
+        const hudWidth = hud ? hud.offsetWidth : 300;
 
         this.canvas.width = container.offsetWidth - hudWidth;
         this.canvas.height = container.offsetHeight;
