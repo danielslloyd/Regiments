@@ -28,6 +28,41 @@ export class Regiment {
         // Combat tracking
         this.inCombatWith = [];
         this.lastDamageTime = 0;
+
+        // Individual balls tracking
+        this.balls = [];
+        this.initializeBalls();
+    }
+
+    initializeBalls() {
+        // Create individual balls in grid formation
+        this.balls = [];
+        const cols = Math.ceil(Math.sqrt(this.troopCount));
+        const rows = Math.ceil(this.troopCount / cols);
+        const spacing = 4;
+
+        let count = 0;
+        for (let r = 0; r < rows && count < this.troopCount; r++) {
+            for (let c = 0; c < cols && count < this.troopCount; c++) {
+                this.balls.push({
+                    id: count,
+                    // Store relative position to regiment center
+                    relativeX: (c - (cols - 1) / 2) * spacing,
+                    relativeY: (r - (rows - 1) / 2) * spacing,
+                    isAlive: true,
+                    scatterOffset: { x: 0, y: 0 }
+                });
+                count++;
+            }
+        }
+    }
+
+    getAliveBalls() {
+        return this.balls.filter(b => b.isAlive);
+    }
+
+    updateTroopCount() {
+        this.troopCount = this.getAliveBalls().length;
     }
 
     // Unit type properties
@@ -114,10 +149,16 @@ export class Regiment {
     takeDamage(damage) {
         const effectiveDamage = damage * this.getDefenseModifier();
 
-        // Troop casualties
-        const casualtyChance = effectiveDamage / Math.max(1, this.troopCount);
-        if (Math.random() < casualtyChance) {
-            this.troopCount = Math.max(1, this.troopCount - 1);
+        // Troop casualties - kill individual balls
+        const aliveBalls = this.getAliveBalls();
+        if (aliveBalls.length > 1) {
+            const casualtyChance = effectiveDamage / Math.max(1, aliveBalls.length);
+            if (Math.random() < casualtyChance) {
+                // Kill a random alive ball
+                const randomIndex = Math.floor(Math.random() * aliveBalls.length);
+                aliveBalls[randomIndex].isAlive = false;
+                this.updateTroopCount();
+            }
         }
 
         // Morale damage
@@ -184,6 +225,16 @@ export class Regiment {
         this.isDugIn = false;
         this.targetPosition = null;
         this.holdLine = null;
+
+        // Scatter individual balls
+        for (const ball of this.balls) {
+            if (ball.isAlive) {
+                ball.scatterOffset = {
+                    x: (Math.random() - 0.5) * 100,
+                    y: (Math.random() - 0.5) * 100
+                };
+            }
+        }
     }
 
     retreat() {
@@ -194,6 +245,44 @@ export class Regiment {
 
     reassemble() {
         this.isScattered = false;
+
+        // Reset scatter offsets
+        for (const ball of this.balls) {
+            ball.scatterOffset = { x: 0, y: 0 };
+        }
+
+        // Re-arrange into formation
+        this.reformBalls();
+    }
+
+    reformBalls() {
+        // Re-arrange alive balls into grid formation
+        const aliveBalls = this.getAliveBalls();
+        const cols = Math.ceil(Math.sqrt(aliveBalls.length));
+        const rows = Math.ceil(aliveBalls.length / cols);
+        const spacing = 4;
+
+        let count = 0;
+        for (let r = 0; r < rows && count < aliveBalls.length; r++) {
+            for (let c = 0; c < cols && count < aliveBalls.length; c++) {
+                aliveBalls[count].relativeX = (c - (cols - 1) / 2) * spacing;
+                aliveBalls[count].relativeY = (r - (rows - 1) / 2) * spacing;
+                aliveBalls[count].scatterOffset = { x: 0, y: 0 };
+                count++;
+            }
+        }
+    }
+
+    arrangeInLine() {
+        // Arrange alive balls in a single line formation
+        const aliveBalls = this.getAliveBalls();
+        const spacing = 4;
+
+        for (let i = 0; i < aliveBalls.length; i++) {
+            aliveBalls[i].relativeX = (i - (aliveBalls.length - 1) / 2) * spacing;
+            aliveBalls[i].relativeY = 0;
+            aliveBalls[i].scatterOffset = { x: 0, y: 0 };
+        }
     }
 
     digIn() {
@@ -219,6 +308,28 @@ export class Regiment {
                 x: (start.x + end.x) / 2,
                 y: (start.y + end.y) / 2
             };
+        }
+    }
+
+    // Arrange balls along a specific line segment
+    arrangeAlongLine(lineStart, lineEnd) {
+        const aliveBalls = this.getAliveBalls();
+        if (aliveBalls.length === 0) return;
+
+        const dx = lineEnd.x - lineStart.x;
+        const dy = lineEnd.y - lineStart.y;
+        const lineLength = Math.hypot(dx, dy);
+        const spacing = Math.min(4, lineLength / aliveBalls.length);
+
+        for (let i = 0; i < aliveBalls.length; i++) {
+            const t = aliveBalls.length === 1 ? 0.5 : i / (aliveBalls.length - 1);
+            const x = lineStart.x + dx * t;
+            const y = lineStart.y + dy * t;
+
+            // Store as relative position from regiment center
+            aliveBalls[i].relativeX = x - this.position.x;
+            aliveBalls[i].relativeY = y - this.position.y;
+            aliveBalls[i].scatterOffset = { x: 0, y: 0 };
         }
     }
 }

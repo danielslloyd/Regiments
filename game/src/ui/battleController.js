@@ -17,6 +17,8 @@ export class BattleController {
         this.selectionEnd = null;
         this.drawingHoldLine = false;
         this.holdLineStart = null;
+        this.holdLineCurrentPos = null;
+        this.isShiftPressed = false;
 
         this.camera = {
             x: 0,
@@ -151,24 +153,36 @@ export class BattleController {
         if (this.isSelecting) {
             this.selectionEnd = pos;
         }
+
+        if (this.drawingHoldLine && this.holdLineStart) {
+            this.holdLineCurrentPos = pos;
+            this.isShiftPressed = e.shiftKey;
+        }
     }
 
     handleMouseUp(e) {
         const pos = this.getMousePos(e);
 
         if (this.drawingHoldLine && this.holdLineStart) {
+            // Constrain endpoint if SHIFT is pressed
+            let endpoint = pos;
+            if (e.shiftKey) {
+                endpoint = this.constrainToStraightLine(this.holdLineStart, pos);
+            }
+
             // Apply hold line to selected units
             for (const unit of this.selectedUnits) {
                 if (unit.player === 1) {
-                    unit.holdLine = [this.holdLineStart, pos];
+                    unit.holdLine = [this.holdLineStart, endpoint];
                     // Move towards line center
                     unit.targetPosition = {
-                        x: (this.holdLineStart.x + pos.x) / 2,
-                        y: (this.holdLineStart.y + pos.y) / 2
+                        x: (this.holdLineStart.x + endpoint.x) / 2,
+                        y: (this.holdLineStart.y + endpoint.y) / 2
                     };
                 }
             }
             this.holdLineStart = null;
+            this.holdLineCurrentPos = null;
             this.drawingHoldLine = false;
             return;
         }
@@ -318,6 +332,20 @@ export class BattleController {
         document.getElementById('btn-fast-speed').classList.toggle('active', speed === 2);
     }
 
+    constrainToStraightLine(start, end) {
+        // Constrain to horizontal or vertical line based on which is closer
+        const dx = Math.abs(end.x - start.x);
+        const dy = Math.abs(end.y - start.y);
+
+        if (dx > dy) {
+            // Horizontal line
+            return { x: end.x, y: start.y };
+        } else {
+            // Vertical line
+            return { x: start.x, y: end.y };
+        }
+    }
+
     updateUnitInfoPanel() {
         const panel = document.getElementById('unit-details');
 
@@ -377,16 +405,20 @@ export class BattleController {
         }
 
         // Render hold line preview
-        if (this.drawingHoldLine && this.holdLineStart) {
+        if (this.drawingHoldLine && this.holdLineStart && this.holdLineCurrentPos) {
             this.ctx.strokeStyle = '#d4a574';
             this.ctx.lineWidth = 3;
             this.ctx.setLineDash([10, 5]);
             this.ctx.beginPath();
             this.ctx.moveTo(this.holdLineStart.x, this.holdLineStart.y);
-            // Draw to mouse position
-            const rect = this.canvas.getBoundingClientRect();
-            const mouseX = this.camera.x + (window.mouseX || 0) - rect.left;
-            const mouseY = this.camera.y + (window.mouseY || 0) - rect.top;
+
+            // Constrain endpoint if SHIFT is pressed
+            let endpoint = this.holdLineCurrentPos;
+            if (this.isShiftPressed) {
+                endpoint = this.constrainToStraightLine(this.holdLineStart, this.holdLineCurrentPos);
+            }
+
+            this.ctx.lineTo(endpoint.x, endpoint.y);
             this.ctx.stroke();
             this.ctx.setLineDash([]);
         }
@@ -580,12 +612,7 @@ export class BattleController {
             this.ctx.globalAlpha = 1;
         }
 
-        // Draw troops as circles in formation
-        const troopsToDraw = Math.min(regiment.troopCount, 50); // Limit for performance
-        const cols = Math.ceil(Math.sqrt(troopsToDraw));
-        const rows = Math.ceil(troopsToDraw / cols);
-        const spacing = 4;
-
+        // Draw individual balls
         // Apply color modification for status
         let actualColor = color;
         if (regiment.isScattered) {
@@ -594,27 +621,37 @@ export class BattleController {
             actualColor = this.lightenColor(color, 0.3);
         }
 
-        this.ctx.fillStyle = actualColor;
+        // Draw each ball individually
+        for (const ball of regiment.balls) {
+            this.ctx.save();
+            this.ctx.translate(x, y);
 
-        // Rotate based on facing
-        this.ctx.save();
-        this.ctx.translate(x, y);
-        this.ctx.rotate(regiment.facing);
+            // Apply scatter offset if scattered
+            let ballX = ball.relativeX + ball.scatterOffset.x;
+            let ballY = ball.relativeY + ball.scatterOffset.y;
 
-        const startX = -(cols - 1) * spacing / 2;
-        const startY = -(rows - 1) * spacing / 2;
-
-        let count = 0;
-        for (let r = 0; r < rows && count < troopsToDraw; r++) {
-            for (let c = 0; c < cols && count < troopsToDraw; c++) {
-                this.ctx.beginPath();
-                this.ctx.arc(startX + c * spacing, startY + r * spacing, 2, 0, Math.PI * 2);
-                this.ctx.fill();
-                count++;
+            // Rotate formation based on facing (but not scatter offset)
+            if (!regiment.isScattered) {
+                this.ctx.rotate(regiment.facing);
+                ballX = ball.relativeX;
+                ballY = ball.relativeY;
             }
-        }
 
-        this.ctx.restore();
+            if (ball.isAlive) {
+                this.ctx.fillStyle = actualColor;
+                this.ctx.globalAlpha = 1;
+            } else {
+                // Dead balls are faded
+                this.ctx.fillStyle = actualColor;
+                this.ctx.globalAlpha = 0.3;
+            }
+
+            this.ctx.beginPath();
+            this.ctx.arc(ballX, ballY, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        }
 
         // Draw unit type indicator
         this.ctx.strokeStyle = '#2c2416';
