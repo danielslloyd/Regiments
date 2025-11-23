@@ -1,5 +1,6 @@
 // Civil War RTS - Game State and Loop
 import { TerrainGenerator } from './map/terrainGenerator.js';
+import { Regiment } from './units/regiment.js';
 
 export class GameState {
     constructor() {
@@ -166,25 +167,7 @@ export class GameState {
     }
 
     createRegiment(type, player, x, y, troopCount) {
-        return {
-            type: type,
-            player: player,
-            position: { x, y },
-            troopCount: troopCount,
-            maxTroopCount: troopCount,
-            strength: 100,
-            morale: 100,
-            ammo: 100,
-            food: 100,
-            isDugIn: false,
-            isRetreating: false,
-            isScattered: false,
-            targetPosition: null,
-            holdLine: null,
-            formation: 'line',
-            facing: player === 1 ? 0 : Math.PI, // Face opponent
-            velocity: { x: 0, y: 0 }
-        };
+        return new Regiment(type, player, x, y, troopCount);
     }
 
     clearAll() {
@@ -273,6 +256,12 @@ export class GameLoop {
 
         // Update unit movement
         this.updateUnitMovement(deltaTime);
+
+        // Update ball formations for hold lines
+        this.updateHoldLineFormations();
+
+        // Resolve ball collisions to prevent overlap
+        this.resolveBallCollisions();
 
         // Check combat ranges
         this.checkCombatRanges();
@@ -488,17 +477,8 @@ export class GameLoop {
     }
 
     applyDamage(regiment, damage) {
-        // Reduce troop count
-        const casualtyChance = damage / regiment.troopCount;
-        if (Math.random() < casualtyChance) {
-            regiment.troopCount = Math.max(1, regiment.troopCount - 1);
-        }
-
-        // Reduce morale based on damage
-        regiment.morale = Math.max(0, regiment.morale - damage * 0.5);
-
-        // Reduce strength slightly
-        regiment.strength = Math.max(10, regiment.strength - damage * 0.1);
+        // Use Regiment's takeDamage method which handles individual balls
+        regiment.takeDamage(damage);
     }
 
     updateMorale(deltaTime) {
@@ -617,6 +597,145 @@ export class GameLoop {
         }
 
         return { x: 0, y: -1 }; // Default: retreat up
+    }
+
+    resolveBallCollisions() {
+        const ballRadius = 2; // Visual radius of each ball
+        const minDistance = ballRadius * 2.2; // Minimum distance between ball centers
+
+        // Build list of all balls with absolute positions
+        const allBalls = [];
+        for (const regiment of this.state.regiments) {
+            if (regiment.isScattered) continue; // Skip scattered regiments
+
+            for (const ball of regiment.balls) {
+                if (!ball.isAlive) continue;
+
+                // Calculate absolute position
+                const cos = Math.cos(regiment.facing);
+                const sin = Math.sin(regiment.facing);
+                const rotatedX = ball.relativeX * cos - ball.relativeY * sin;
+                const rotatedY = ball.relativeX * sin + ball.relativeY * cos;
+
+                allBalls.push({
+                    ball: ball,
+                    regiment: regiment,
+                    x: regiment.position.x + rotatedX,
+                    y: regiment.position.y + rotatedY
+                });
+            }
+        }
+
+        // Check collisions between balls from different regiments
+        for (let i = 0; i < allBalls.length; i++) {
+            for (let j = i + 1; j < allBalls.length; j++) {
+                const a = allBalls[i];
+                const b = allBalls[j];
+
+                // Skip if same regiment
+                if (a.regiment === b.regiment) continue;
+
+                const dx = b.x - a.x;
+                const dy = b.y - a.y;
+                const dist = Math.hypot(dx, dy);
+
+                // If too close, push apart
+                if (dist < minDistance && dist > 0) {
+                    const overlap = minDistance - dist;
+                    const pushX = (dx / dist) * overlap * 0.5;
+                    const pushY = (dy / dist) * overlap * 0.5;
+
+                    // Update relative positions to push balls apart
+                    // Convert push back to relative coordinates
+                    const cosA = Math.cos(a.regiment.facing);
+                    const sinA = Math.sin(a.regiment.facing);
+                    const cosB = Math.cos(b.regiment.facing);
+                    const sinB = Math.sin(b.regiment.facing);
+
+                    // Push ball A away
+                    const pushAX = -pushX;
+                    const pushAY = -pushY;
+                    const relPushAX = pushAX * cosA + pushAY * sinA;
+                    const relPushAY = -pushAX * sinA + pushAY * cosA;
+                    a.ball.relativeX += relPushAX;
+                    a.ball.relativeY += relPushAY;
+
+                    // Push ball B away
+                    const pushBX = pushX;
+                    const pushBY = pushY;
+                    const relPushBX = pushBX * cosB + pushBY * sinB;
+                    const relPushBY = -pushBX * sinB + pushBY * cosB;
+                    b.ball.relativeX += relPushBX;
+                    b.ball.relativeY += relPushBY;
+
+                    // Update absolute positions for next iteration
+                    a.x += pushAX;
+                    a.y += pushAY;
+                    b.x += pushBX;
+                    b.y += pushBY;
+                }
+            }
+        }
+    }
+
+    updateHoldLineFormations() {
+        // Group regiments by their hold lines
+        const lineGroups = new Map();
+
+        for (const regiment of this.state.regiments) {
+            if (!regiment.holdLine || regiment.isScattered) {
+                // No hold line or scattered - use normal formation
+                if (!regiment.isScattered && !regiment.holdLine) {
+                    regiment.reformBalls();
+                }
+                continue;
+            }
+
+            // Create a key for this line
+            const lineKey = `${regiment.holdLine[0].x},${regiment.holdLine[0].y}-${regiment.holdLine[1].x},${regiment.holdLine[1].y}`;
+
+            if (!lineGroups.has(lineKey)) {
+                lineGroups.set(lineKey, {
+                    line: regiment.holdLine,
+                    regiments: []
+                });
+            }
+
+            lineGroups.get(lineKey).regiments.push(regiment);
+        }
+
+        // Process each line group
+        for (const [lineKey, group] of lineGroups) {
+            if (group.regiments.length === 1) {
+                // Single regiment on this line - stretch across entire line
+                const regiment = group.regiments[0];
+                regiment.arrangeAlongLine(group.line[0], group.line[1]);
+            } else {
+                // Multiple regiments - allocate sections
+                const totalTroops = group.regiments.reduce((sum, r) => sum + r.troopCount, 0);
+                const lineStart = group.line[0];
+                const lineEnd = group.line[1];
+                const dx = lineEnd.x - lineStart.x;
+                const dy = lineEnd.y - lineStart.y;
+
+                let currentOffset = 0;
+
+                for (const regiment of group.regiments) {
+                    const proportion = regiment.troopCount / totalTroops;
+                    const sectionStart = {
+                        x: lineStart.x + dx * currentOffset,
+                        y: lineStart.y + dy * currentOffset
+                    };
+                    const sectionEnd = {
+                        x: lineStart.x + dx * (currentOffset + proportion),
+                        y: lineStart.y + dy * (currentOffset + proportion)
+                    };
+
+                    regiment.arrangeAlongLine(sectionStart, sectionEnd);
+                    currentOffset += proportion;
+                }
+            }
+        }
     }
 
     updateAI(deltaTime) {
