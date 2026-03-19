@@ -24,19 +24,23 @@
         <div id="map-editor-screen" class="screen">
             <div class="editor-toolbar">
                 <h3>Map Editor</h3>
-                <div class="brush-tools">
-                    <button id="brush-elevation" class="brush-btn active" data-brush="elevation">Elevation</button>
-                    <button id="brush-water" class="brush-btn" data-brush="water">Water</button>
-                    <button id="brush-foliage" class="brush-btn" data-brush="foliage">Foliage</button>
-                </div>
-                <div class="brush-size">
-                    <label>Brush Size: <span id="brush-size-value">20</span></label>
-                    <input type="range" id="brush-size" min="5" max="100" value="20">
+                <div class="procgen-options">
+                    <div class="option-group">
+                        <label>Seed</label>
+                        <input type="number" id="map-seed" placeholder="Random">
+                    </div>
+                    <div class="option-group">
+                        <label>Terrain</label>
+                        <select id="terrain-style">
+                            <option value="rolling">Rolling Hills</option>
+                            <option value="flat">River Plains</option>
+                            <option value="rugged">Rugged</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="editor-actions">
-                    <button id="btn-generate-map">Generate Terrain</button>
-                    <button id="btn-random-map">Random Map</button>
-                    <button id="btn-clear-map">Clear</button>
+                    <button id="btn-generate-map">Generate Map</button>
+                    <button id="btn-new-seed">New Seed</button>
                     <button id="btn-save-map">Save Map</button>
                     <button id="btn-back-from-map">Back to Menu</button>
                 </div>

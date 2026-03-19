@@ -26,10 +26,14 @@ export class GameState {
         this.gameSpeed = 1;
     }
 
-    generateRandomMap(width, height) {
-        const generator = new TerrainGenerator(width, height);
-        this.currentMap = generator.generateRandom();
+    generateMap(width, height, seed, style) {
+        const generator = new TerrainGenerator(width, height, seed);
+        this.currentMap = generator.generateRandom(style);
         this.brushData = { elevation: [], water: [], foliage: [] };
+    }
+
+    generateRandomMap(width, height) {
+        this.generateMap(width, height, Math.floor(Math.random() * 999999), 'rolling');
     }
 
     generateMapFromBrushData(width, height) {
@@ -488,8 +492,8 @@ export class GameLoop {
                 if (!regiment.isScattered) {
                     regiment.morale = Math.min(100, regiment.morale + deltaTime * 2);
                 } else {
-                    // Scattered units slowly recover
-                    regiment.morale = Math.min(30, regiment.morale + deltaTime * 1);
+                    // Scattered units slowly recover (cap at 50 so they can reassemble past the 30 threshold)
+                    regiment.morale = Math.min(50, regiment.morale + deltaTime * 1);
                 }
             }
 
