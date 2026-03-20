@@ -691,8 +691,8 @@ export class BattleController {
         this.ctx.fillStyle = '#333';
         this.ctx.fillRect(moraleX, moraleY, moraleWidth, moraleHeight);
 
-        const moraleColor = regiment.morale > 50 ? '#6b8e23' :
-                          regiment.morale > 20 ? '#ffa500' : '#dc143c';
+        const moraleColor = regiment.morale > 30 ? '#6b8e23' :
+                          regiment.morale > 10 ? '#ffa500' : '#dc143c';
         this.ctx.fillStyle = moraleColor;
         this.ctx.fillRect(moraleX, moraleY, moraleWidth * regiment.morale / 100, moraleHeight);
     }

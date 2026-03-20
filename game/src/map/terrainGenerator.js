@@ -1,22 +1,26 @@
 // Civil War RTS - Terrain Generator with Isolines
 
 export class TerrainGenerator {
-    constructor(width, height) {
+    constructor(width, height, seed) {
         this.width = width;
         this.height = height;
+        this.rng = this._makeRng(seed != null ? seed : Math.floor(Math.random() * 999999));
     }
 
-    generateRandom() {
-        // Generate elevation using Perlin-like noise
-        const elevationData = this.generateNoiseMap();
+    // Mulberry32 seeded RNG
+    _makeRng(seed) {
+        let s = seed >>> 0;
+        return function() {
+            s = Math.imul(s ^ (s >>> 15), s | 1);
+            s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
+            return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
+        };
+    }
 
-        // Generate water features
+    generateRandom(style = 'rolling') {
+        const elevationData = this.generateNoiseMap(style);
         const waterways = this.generateWaterways(elevationData);
-
-        // Generate foliage
         const foliage = this.generateFoliage(elevationData);
-
-        // Generate isolines from elevation data
         const isolines = this.generateIsolines(elevationData);
 
         return {
@@ -29,16 +33,9 @@ export class TerrainGenerator {
     }
 
     generateFromBrushData(brushData) {
-        // Convert brush strokes to elevation data
         const elevationData = this.brushToElevation(brushData.elevation);
-
-        // Convert water brush to waterways
         const waterways = this.brushToWaterways(brushData.water);
-
-        // Convert foliage brush to forest shapes
         const foliage = this.brushToFoliage(brushData.foliage);
-
-        // Generate isolines
         const isolines = this.generateIsolines(elevationData);
 
         return {
@@ -50,72 +47,71 @@ export class TerrainGenerator {
         };
     }
 
-    generateNoiseMap() {
+    generateNoiseMap(style = 'rolling') {
         const data = new Float32Array(this.width * this.height);
 
-        // Simple value noise implementation
-        const gridSize = 64;
-        const grid = [];
-        const gridW = Math.ceil(this.width / gridSize) + 1;
-        const gridH = Math.ceil(this.height / gridSize) + 1;
-
-        for (let i = 0; i < gridW * gridH; i++) {
-            grid.push(Math.random());
+        // Style presets: adjust octave weights and grid sizes
+        let baseGridSize, octaves;
+        switch (style) {
+            case 'flat':
+                baseGridSize = 128;
+                octaves = [{ size: 64, amp: 0.2 }, { size: 32, amp: 0.1 }];
+                break;
+            case 'rugged':
+                baseGridSize = 48;
+                octaves = [{ size: 24, amp: 0.6 }, { size: 12, amp: 0.4 }];
+                break;
+            default: // rolling
+                baseGridSize = 64;
+                octaves = [{ size: 32, amp: 0.5 }, { size: 16, amp: 0.25 }];
         }
 
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                const gx = x / gridSize;
-                const gy = y / gridSize;
-                const x0 = Math.floor(gx);
-                const y0 = Math.floor(gy);
-                const x1 = x0 + 1;
-                const y1 = y0 + 1;
+        // Base noise layer
+        this._addNoiseLayer(data, baseGridSize, 1.0);
 
-                const fx = gx - x0;
-                const fy = gy - y0;
-
-                // Smooth interpolation
-                const sx = fx * fx * (3 - 2 * fx);
-                const sy = fy * fy * (3 - 2 * fy);
-
-                const v00 = grid[y0 * gridW + x0] || 0;
-                const v10 = grid[y0 * gridW + x1] || 0;
-                const v01 = grid[y1 * gridW + x0] || 0;
-                const v11 = grid[y1 * gridW + x1] || 0;
-
-                const top = v00 + sx * (v10 - v00);
-                const bottom = v01 + sx * (v11 - v01);
-                const value = top + sy * (bottom - top);
-
-                data[y * this.width + x] = value;
-            }
+        // Additional octaves
+        for (const oct of octaves) {
+            this._addNoiseLayer(data, oct.size, oct.amp);
         }
 
-        // Add multiple octaves for more detail
-        this.addOctave(data, 32, 0.5);
-        this.addOctave(data, 16, 0.25);
-
-        // Normalize to 0-10 range (elevation levels)
+        // Normalize to 0-10 range
         let min = Infinity, max = -Infinity;
         for (let i = 0; i < data.length; i++) {
             if (data[i] < min) min = data[i];
             if (data[i] > max) max = data[i];
         }
+        const range = max - min || 1;
         for (let i = 0; i < data.length; i++) {
-            data[i] = ((data[i] - min) / (max - min)) * 10;
+            data[i] = ((data[i] - min) / range) * 10;
+        }
+
+        // Flatten edges slightly for 'flat' style
+        if (style === 'flat') {
+            for (let i = 0; i < data.length; i++) {
+                data[i] = data[i] * 0.6 + 2;
+            }
+            // Re-normalize
+            let mn = Infinity, mx = -Infinity;
+            for (let i = 0; i < data.length; i++) {
+                if (data[i] < mn) mn = data[i];
+                if (data[i] > mx) mx = data[i];
+            }
+            const rng = mx - mn || 1;
+            for (let i = 0; i < data.length; i++) {
+                data[i] = ((data[i] - mn) / rng) * 10;
+            }
         }
 
         return data;
     }
 
-    addOctave(data, gridSize, amplitude) {
-        const grid = [];
+    _addNoiseLayer(data, gridSize, amplitude) {
         const gridW = Math.ceil(this.width / gridSize) + 1;
         const gridH = Math.ceil(this.height / gridSize) + 1;
+        const grid = [];
 
         for (let i = 0; i < gridW * gridH; i++) {
-            grid.push(Math.random() * amplitude);
+            grid.push(this.rng() * amplitude);
         }
 
         for (let y = 0; y < this.height; y++) {
@@ -139,27 +135,27 @@ export class TerrainGenerator {
 
                 const top = v00 + sx * (v10 - v00);
                 const bottom = v01 + sx * (v11 - v01);
-                const value = top + sy * (bottom - top);
-
-                data[y * this.width + x] += value;
+                data[y * this.width + x] += top + sy * (bottom - top);
             }
         }
+    }
+
+    // Legacy method kept for brush-based generation compatibility
+    addOctave(data, gridSize, amplitude) {
+        this._addNoiseLayer(data, gridSize, amplitude);
     }
 
     brushToElevation(strokes) {
         const data = new Float32Array(this.width * this.height);
 
-        // Apply each stroke to the elevation data
         for (const stroke of strokes) {
             for (const point of stroke.points) {
                 this.applyBrushPoint(data, point.x, point.y, stroke.size, stroke.density);
             }
         }
 
-        // Smooth the data
         this.smoothData(data);
 
-        // Normalize
         let max = 0;
         for (let i = 0; i < data.length; i++) {
             if (data[i] > max) max = data[i];
@@ -263,13 +259,11 @@ export class TerrainGenerator {
             return a + t * (b - a);
         };
 
-        // Edge points
         const top = { x: lerp(x, x + 1, v0, v1), y: y };
         const right = { x: x + 1, y: lerp(y, y + 1, v1, v2) };
         const bottom = { x: lerp(x, x + 1, v3, v2), y: y + 1 };
         const left = { x: x, y: lerp(y, y + 1, v0, v3) };
 
-        // Lookup table for marching squares
         switch (code) {
             case 1: segments.push([left, bottom]); break;
             case 2: segments.push([bottom, right]); break;
@@ -308,9 +302,9 @@ export class TerrainGenerator {
             const chain = [...segments[i]];
             used.add(i);
 
-            // Limit iterations to prevent infinite loops
+            // Cap iterations to avoid stalling on large maps
+            const maxIterations = Math.min(segments.length * 2, 5000);
             let iterations = 0;
-            const maxIterations = segments.length * 2;
             let changed = true;
 
             while (changed && iterations < maxIterations) {
@@ -328,7 +322,7 @@ export class TerrainGenerator {
                         chain.unshift(seg[0]);
                         used.add(j);
                         changed = true;
-                        break; // Only add one segment per iteration
+                        break;
                     } else if (this.pointsClose(seg[0], end)) {
                         chain.push(seg[1]);
                         used.add(j);
@@ -348,7 +342,6 @@ export class TerrainGenerator {
                 }
             }
 
-            // Simplify chain before adding
             if (chain.length > 1) {
                 const simplified = this.simplifyPath(chain);
                 points.push(...simplified);
@@ -367,12 +360,13 @@ export class TerrainGenerator {
 
         const result = [points[0]];
         let lastAdded = 0;
+        const endpoint = points[points.length - 1];
 
         for (let i = 1; i < points.length - 1; i++) {
             const dist = this.pointToLineDistance(
                 points[i],
                 points[lastAdded],
-                points[i + 1]
+                endpoint
             );
 
             if (dist > tolerance) {
@@ -381,7 +375,7 @@ export class TerrainGenerator {
             }
         }
 
-        result.push(points[points.length - 1]);
+        result.push(endpoint);
         return result;
     }
 
@@ -407,7 +401,6 @@ export class TerrainGenerator {
         for (const stroke of strokes) {
             if (stroke.points.length < 2) continue;
 
-            // Determine water type based on stroke characteristics
             const avgDensity = stroke.points.reduce((sum, p) => sum + (p.density || 1), 0) / stroke.points.length;
             const pathLength = this.calculatePathLength(stroke.points);
 
@@ -445,7 +438,6 @@ export class TerrainGenerator {
         for (const stroke of strokes) {
             if (stroke.points.length < 2) continue;
 
-            // Create foliage shape from stroke
             const bounds = this.getStrokeBounds(stroke);
             const density = stroke.density || 0.5;
 
@@ -474,14 +466,13 @@ export class TerrainGenerator {
     }
 
     createFoliageShape(points, size) {
-        // Create an irregular shape around the stroke points
         const shape = [];
         const radius = size / 2;
 
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
             const angle = i * (Math.PI * 2 / points.length);
-            const variation = (Math.random() - 0.5) * radius * 0.5;
+            const variation = (this.rng() - 0.5) * radius * 0.5;
 
             shape.push({
                 x: p.x + Math.cos(angle) * (radius + variation),
@@ -495,8 +486,7 @@ export class TerrainGenerator {
     generateWaterways(elevationData) {
         const waterways = [];
 
-        // Find low points and create rivers flowing from them
-        const numRivers = 2 + Math.floor(Math.random() * 3);
+        const numRivers = 2 + Math.floor(this.rng() * 3);
 
         for (let i = 0; i < numRivers; i++) {
             const river = this.generateRiver(elevationData);
@@ -504,13 +494,12 @@ export class TerrainGenerator {
                 waterways.push({
                     type: 'river',
                     points: river,
-                    width: 5 + Math.random() * 10
+                    width: 5 + this.rng() * 10
                 });
             }
         }
 
-        // Add some lakes in low areas
-        const numLakes = Math.floor(Math.random() * 3);
+        const numLakes = Math.floor(this.rng() * 3);
         for (let i = 0; i < numLakes; i++) {
             const lake = this.generateLake(elevationData);
             if (lake) {
@@ -524,19 +513,17 @@ export class TerrainGenerator {
     generateRiver(elevationData) {
         const points = [];
 
-        // Start from a random edge
         let x, y;
-        const edge = Math.floor(Math.random() * 4);
+        const edge = Math.floor(this.rng() * 4);
         switch (edge) {
-            case 0: x = Math.random() * this.width; y = 0; break;
-            case 1: x = this.width; y = Math.random() * this.height; break;
-            case 2: x = Math.random() * this.width; y = this.height; break;
-            case 3: x = 0; y = Math.random() * this.height; break;
+            case 0: x = this.rng() * this.width; y = 0; break;
+            case 1: x = this.width; y = this.rng() * this.height; break;
+            case 2: x = this.rng() * this.width; y = this.height; break;
+            case 3: x = 0; y = this.rng() * this.height; break;
         }
 
         points.push({ x, y });
 
-        // Flow downhill
         for (let i = 0; i < 100; i++) {
             const neighbors = [
                 { x: x - 5, y: y },
@@ -564,13 +551,11 @@ export class TerrainGenerator {
 
             if (!lowestNeighbor) break;
 
-            // Add some randomness
-            x = lowestNeighbor.x + (Math.random() - 0.5) * 3;
-            y = lowestNeighbor.y + (Math.random() - 0.5) * 3;
+            x = lowestNeighbor.x + (this.rng() - 0.5) * 3;
+            y = lowestNeighbor.y + (this.rng() - 0.5) * 3;
 
             points.push({ x, y });
 
-            // Stop if we reach an edge
             if (x < 5 || x > this.width - 5 || y < 5 || y > this.height - 5) break;
         }
 
@@ -578,12 +563,11 @@ export class TerrainGenerator {
     }
 
     generateLake(elevationData) {
-        // Find a low point
         let lowestX = 0, lowestY = 0, lowestVal = Infinity;
 
         for (let i = 0; i < 100; i++) {
-            const x = Math.floor(Math.random() * this.width);
-            const y = Math.floor(Math.random() * this.height);
+            const x = Math.floor(this.rng() * this.width);
+            const y = Math.floor(this.rng() * this.height);
             const val = elevationData[y * this.width + x];
 
             if (val < lowestVal) {
@@ -593,14 +577,13 @@ export class TerrainGenerator {
             }
         }
 
-        // Create lake shape
         const points = [];
-        const numPoints = 8 + Math.floor(Math.random() * 8);
-        const radius = 20 + Math.random() * 30;
+        const numPoints = 8 + Math.floor(this.rng() * 8);
+        const radius = 20 + this.rng() * 30;
 
         for (let i = 0; i < numPoints; i++) {
             const angle = (i / numPoints) * Math.PI * 2;
-            const r = radius * (0.7 + Math.random() * 0.6);
+            const r = radius * (0.7 + this.rng() * 0.6);
             points.push({
                 x: lowestX + Math.cos(angle) * r,
                 y: lowestY + Math.sin(angle) * r
@@ -610,34 +593,32 @@ export class TerrainGenerator {
         return {
             type: 'lake',
             points: points,
-            width: 0 // Lakes are filled shapes
+            width: 0
         };
     }
 
     generateFoliage(elevationData) {
         const foliage = [];
-        const numForests = 3 + Math.floor(Math.random() * 5);
+        const numForests = 3 + Math.floor(this.rng() * 5);
 
         for (let i = 0; i < numForests; i++) {
-            // Place forests on moderate elevation
             let x, y, elevation;
             let attempts = 0;
 
             do {
-                x = Math.random() * this.width;
-                y = Math.random() * this.height;
+                x = this.rng() * this.width;
+                y = this.rng() * this.height;
                 elevation = elevationData[Math.floor(y) * this.width + Math.floor(x)];
                 attempts++;
             } while ((elevation < 2 || elevation > 7) && attempts < 50);
 
-            // Create irregular forest shape
-            const numPoints = 6 + Math.floor(Math.random() * 6);
-            const radius = 30 + Math.random() * 50;
+            const numPoints = 6 + Math.floor(this.rng() * 6);
+            const radius = 30 + this.rng() * 50;
             const shape = [];
 
             for (let j = 0; j < numPoints; j++) {
                 const angle = (j / numPoints) * Math.PI * 2;
-                const r = radius * (0.5 + Math.random());
+                const r = radius * (0.5 + this.rng());
                 shape.push({
                     x: x + Math.cos(angle) * r,
                     y: y + Math.sin(angle) * r
@@ -645,7 +626,7 @@ export class TerrainGenerator {
             }
 
             foliage.push({
-                density: 0.3 + Math.random() * 0.7,
+                density: 0.3 + this.rng() * 0.7,
                 shape: shape,
                 bounds: {
                     minX: x - radius,

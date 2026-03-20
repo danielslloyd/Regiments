@@ -1,5 +1,7 @@
 // Civil War RTS - Scenario Editor
 
+import { Regiment } from '../units/regiment.js';
+
 export class ScenarioEditor {
     constructor(canvas, gameState) {
         this.canvas = canvas;
@@ -452,7 +454,23 @@ export class ScenarioEditor {
             reader.onload = (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    this.state.regiments = data.regiments || [];
+
+                    // Reconstruct Regiment instances so all methods are available
+                    this.state.regiments = (data.regiments || []).map(r => {
+                        const reg = new Regiment(r.type, r.player, r.position.x, r.position.y, r.maxTroopCount || r.troopCount);
+                        reg.id = r.id;
+                        reg.troopCount = r.troopCount;
+                        reg.strength = r.strength ?? 100;
+                        reg.morale = r.morale ?? 100;
+                        reg.ammo = r.ammo ?? 100;
+                        reg.food = r.food ?? 100;
+                        reg.isDugIn = r.isDugIn ?? false;
+                        reg.isRetreating = r.isRetreating ?? false;
+                        reg.isScattered = r.isScattered ?? false;
+                        reg.facing = r.facing ?? (r.player === 1 ? 0 : Math.PI);
+                        return reg;
+                    });
+
                     this.state.supplies = data.supplies || {
                         depots: [],
                         camps: [],
