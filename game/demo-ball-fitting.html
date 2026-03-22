@@ -53,45 +53,27 @@
             padding-bottom: 0.25rem;
         }
 
-        /* ── Unit buttons ── */
-        .unit-buttons {
+        /* ── Slider ── */
+        .slider-group {
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.4rem;
         }
 
-        .unit-btn {
-            padding: 0.55rem 0.75rem;
-            font-family: 'Georgia', serif;
-            font-size: 0.85rem;
-            background: #5a4630;
-            border: 2px solid #8b7355;
-            color: #f4e4bc;
+        #size-slider {
+            width: 100%;
+            accent-color: #d4a574;
             cursor: pointer;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            transition: all 0.15s;
+            height: 4px;
         }
 
-        .unit-btn:hover { background: #7a5f40; }
-        .unit-btn.active { background: #8b7355; border-color: #d4a574; }
-
-        .unit-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.25);
-            flex-shrink: 0;
-        }
-
-        .unit-meta {
-            margin-left: auto;
-            font-size: 0.72rem;
+        #size-label {
+            font-size: 0.75rem;
             color: #a89070;
-            white-space: nowrap;
+            text-align: center;
         }
+
+        #size-label span { color: #d4a574; }
 
         /* ── Status panel ── */
         #status-panel {
@@ -103,13 +85,13 @@
             gap: 0.45rem;
         }
 
-        #gap-info {
-            font-size: 0.78rem;
+        #elev-info {
+            font-size: 0.76rem;
             color: #a89070;
-            min-height: 1.2em;
+            min-height: 1.1em;
         }
 
-        #gap-info span { color: #d4a574; }
+        #elev-info span { color: #d4a574; }
 
         .status-row {
             display: flex;
@@ -122,14 +104,22 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.2);
             flex-shrink: 0;
         }
 
         .status-label { color: #a89070; flex: 1; }
 
+        .status-lines {
+            font-size: 0.7rem;
+            color: #7a6050;
+            min-width: 40px;
+            text-align: right;
+        }
+
         .status-value {
-            font-size: 0.72rem;
-            padding: 0.12rem 0.4rem;
+            font-size: 0.7rem;
+            padding: 0.12rem 0.35rem;
             border-radius: 2px;
             font-weight: bold;
             min-width: 38px;
@@ -138,15 +128,10 @@
 
         .sv-pass  { background: #243d18; color: #7fca50; }
         .sv-block { background: #3d1818; color: #ca5050; }
-        .sv-flat  { background: #2a2a18; color: #cacc50; }
         .sv-dash  { color: #5a4630; }
 
         /* ── Overlay toggle ── */
-        .overlay-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-        }
+        .overlay-buttons { display: flex; flex-direction: column; gap: 0.35rem; }
 
         .overlay-btn {
             padding: 0.5rem 0.75rem;
@@ -180,27 +165,28 @@
         .controls button:hover { background: #7a5f40; border-color: #d4a574; }
 
         /* ── Legend ── */
-        #legend { display: flex; flex-direction: column; gap: 0.3rem; }
+        #legend { display: flex; flex-direction: column; gap: 0.35rem; }
 
         .legend-row {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
             font-size: 0.74rem;
             color: #a89070;
         }
 
-        .legend-swatch {
-            width: 24px;
+        .legend-dot {
+            width: 12px;
             height: 12px;
-            border-radius: 2px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
             flex-shrink: 0;
         }
 
         /* ── Footer note ── */
         .footnote {
             margin-top: auto;
-            font-size: 0.72rem;
+            font-size: 0.71rem;
             color: #5a4630;
             border-top: 1px solid #5a4630;
             padding-top: 0.5rem;
@@ -208,11 +194,7 @@
         }
 
         /* ── Canvas ── */
-        #canvas-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
+        #canvas-container { flex: 1; position: relative; overflow: hidden; }
 
         #main-canvas {
             display: block;
@@ -231,80 +213,65 @@
     <h1>Ball Fitting<br>Through Lines</h1>
 
     <p class="description">
-        Each unit is modeled as a ball with a fixed radius. A unit can traverse
-        terrain only where its ball fits between adjacent elevation isolines.
-        Closely-spaced isolines (steep slopes) block larger units.
+        A ball may occupy any position where it touches <em>at most one</em>
+        isoline. All segments sharing an elevation level count as a single line.
+        Hover over the map to see all three unit balls at once.
     </p>
 
-    <div class="section-title">Active unit</div>
-    <div class="unit-buttons">
-        <button class="unit-btn active" data-type="infantry">
-            <div class="unit-dot" style="background:#4a90d9"></div>
-            Infantry
-            <span class="unit-meta">r = 10 · needs gap ≥ 20</span>
-        </button>
-        <button class="unit-btn" data-type="cavalry">
-            <div class="unit-dot" style="background:#c8a040"></div>
-            Cavalry
-            <span class="unit-meta">r = 15 · needs gap ≥ 30</span>
-        </button>
-        <button class="unit-btn" data-type="artillery">
-            <div class="unit-dot" style="background:#d94a4a"></div>
-            Artillery
-            <span class="unit-meta">r = 20 · needs gap ≥ 40</span>
-        </button>
+    <div class="section-title">Ball size</div>
+    <div class="slider-group">
+        <input type="range" id="size-slider" min="0.2" max="4" step="0.05" value="1">
+        <div id="size-label">
+            <span>1.00×</span> &nbsp;·&nbsp; r = 10.0 / 15.0 / 20.0
+        </div>
     </div>
 
     <div class="section-title">At cursor</div>
     <div id="status-panel">
-        <div id="gap-info">Move cursor over the terrain</div>
+        <div id="elev-info">Move cursor over the terrain</div>
         <div class="status-row">
             <div class="status-dot" style="background:#4a90d9"></div>
-            <span class="status-label">Infantry</span>
+            <span class="status-label" id="label-infantry">Infantry  r=10.0</span>
+            <span class="status-lines" id="lines-infantry"></span>
             <span class="status-value sv-dash" id="status-infantry">—</span>
         </div>
         <div class="status-row">
             <div class="status-dot" style="background:#c8a040"></div>
-            <span class="status-label">Cavalry</span>
+            <span class="status-label" id="label-cavalry">Cavalry  r=15.0</span>
+            <span class="status-lines" id="lines-cavalry"></span>
             <span class="status-value sv-dash" id="status-cavalry">—</span>
         </div>
         <div class="status-row">
             <div class="status-dot" style="background:#d94a4a"></div>
-            <span class="status-label">Artillery</span>
+            <span class="status-label" id="label-artillery">Artillery  r=20.0</span>
+            <span class="status-lines" id="lines-artillery"></span>
             <span class="status-value sv-dash" id="status-artillery">—</span>
         </div>
     </div>
 
     <div class="section-title">Overlay</div>
     <div class="overlay-buttons">
-        <button class="overlay-btn active" data-overlay="traversability">
-            Traversability map
-        </button>
-        <button class="overlay-btn" data-overlay="steepness">
-            Steepness (gradient)
-        </button>
-        <button class="overlay-btn" data-overlay="none">
-            None
-        </button>
+        <button class="overlay-btn active" data-overlay="steepness">Steepness (gradient)</button>
+        <button class="overlay-btn" data-overlay="none">None</button>
     </div>
 
     <div class="section-title">Legend</div>
     <div id="legend">
         <div class="legend-row">
-            <div class="legend-swatch" style="background:#3a6e28"></div>
-            All units can pass
+            <div class="legend-dot" style="background:#4a90d9"></div>
+            Infantry (innermost)
         </div>
         <div class="legend-row">
-            <div class="legend-swatch" style="background:#8a7820"></div>
-            Infantry &amp; cavalry only
+            <div class="legend-dot" style="background:#c8a040"></div>
+            Cavalry (middle)
         </div>
         <div class="legend-row">
-            <div class="legend-swatch" style="background:#8a5020"></div>
-            Infantry only
+            <div class="legend-dot" style="background:#d94a4a"></div>
+            Artillery (outermost)
         </div>
-        <div class="legend-row">
-            <div class="legend-swatch" style="background:#8a2020"></div>
-            No unit can pass
+        <div class="legend-row" style="margin-top:0.2rem;">
+            <div class="legend-dot" style="background:#e04040; opacity:0.5"></div>
+            Red = blocked (touches 2+ levels)
         </div>
     </div>
 
@@ -313,8 +280,8 @@
     </div>
 
     <p class="footnote">
-        Gap ≈ 1 / |∇elevation|. Isolines are spaced 1 elevation unit apart;
-        the steeper the slope, the closer they crowd together.
+        Rule: count distinct elevation levels whose isoline is within radius r
+        of the ball centre. Pass if that count ≤ 1.
     </p>
 </div>
 
@@ -323,29 +290,29 @@
 </div>
 
 <script>
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const TW = 200, TH = 200; // world units (terrain grid)
-
+const TW = 200, TH = 200;
 const ISO_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-const UNITS = {
-    infantry:  { name: 'Infantry',  radius: 10, color: '#4a90d9', need: 20 },
-    cavalry:   { name: 'Cavalry',   radius: 15, color: '#c8a040', need: 30 },
-    artillery: { name: 'Artillery', radius: 20, color: '#d94a4a', need: 40 },
-};
+const UNIT_ORDER  = ['artillery', 'cavalry', 'infantry']; // draw outside-in
+const BASE_RADII  = { infantry: 10, cavalry: 15, artillery: 20 };
+const UNIT_COLORS = { infantry: '#4a90d9', cavalry: '#c8a040', artillery: '#d94a4a' };
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let terrain      = null;
-let gradMap      = null;
-let selectedType = 'infantry';
-let overlayMode  = 'traversability';
-let mouseWorld   = null;
-
+let terrain     = null;
+let gradMap     = null;
+let isoSegments = {};   // level → [{ax,ay,bx,by}]
+let sizeScale   = 1.0;
+let mouseWorld  = null;
+let overlayMode = 'steepness';
+let terrainImage = null;
 let seed = Math.floor(Math.random() * 999999);
 
-// ── Seeded RNG (Mulberry32) ───────────────────────────────────────────────────
+function scaledRadius(type) { return BASE_RADII[type] * sizeScale; }
+
+// ── Seeded RNG ────────────────────────────────────────────────────────────────
 
 function makeRng(s) {
     s = s >>> 0;
@@ -356,13 +323,12 @@ function makeRng(s) {
     };
 }
 
-// ── Terrain Generation ────────────────────────────────────────────────────────
+// ── Terrain generation ────────────────────────────────────────────────────────
 
 function addNoiseLayer(data, W, H, gridSize, amp, rng) {
     const gW = Math.ceil(W / gridSize) + 1;
     const gH = Math.ceil(H / gridSize) + 1;
     const grid = Array.from({ length: gW * gH }, () => rng() * amp);
-
     for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
             const gx = x / gridSize, gy = y / gridSize;
@@ -370,13 +336,11 @@ function addNoiseLayer(data, W, H, gridSize, amp, rng) {
             const fx = gx - x0, fy = gy - y0;
             const sx = fx * fx * (3 - 2 * fx);
             const sy = fy * fy * (3 - 2 * fy);
-            const v00 = grid[y0 * gW + x0]       || 0;
-            const v10 = grid[y0 * gW + (x0 + 1)] || 0;
-            const v01 = grid[(y0 + 1) * gW + x0] || 0;
+            const v00 = grid[ y0      * gW +  x0     ] || 0;
+            const v10 = grid[ y0      * gW + (x0 + 1)] || 0;
+            const v01 = grid[(y0 + 1) * gW +  x0     ] || 0;
             const v11 = grid[(y0 + 1) * gW + (x0 + 1)] || 0;
-            const top    = v00 + sx * (v10 - v00);
-            const bottom = v01 + sx * (v11 - v01);
-            data[y * W + x] += top + sy * (bottom - top);
+            data[y * W + x] += (v00 + sx * (v10 - v00)) + sy * ((v01 + sx * (v11 - v01)) - (v00 + sx * (v10 - v00)));
         }
     }
 }
@@ -384,19 +348,16 @@ function addNoiseLayer(data, W, H, gridSize, amp, rng) {
 function generateTerrain(seed) {
     const rng  = makeRng(seed);
     const data = new Float32Array(TW * TH);
-
     addNoiseLayer(data, TW, TH, 80, 1.00, rng);
     addNoiseLayer(data, TW, TH, 40, 0.50, rng);
     addNoiseLayer(data, TW, TH, 20, 0.25, rng);
-
     let lo = Infinity, hi = -Infinity;
     for (let i = 0; i < data.length; i++) {
         if (data[i] < lo) lo = data[i];
         if (data[i] > hi) hi = data[i];
     }
-    const r = hi - lo || 1;
+    const r = (hi - lo) || 1;
     for (let i = 0; i < data.length; i++) data[i] = ((data[i] - lo) / r) * 10;
-
     return data;
 }
 
@@ -412,19 +373,93 @@ function computeGradientMap(data) {
     return grad;
 }
 
-// ── Coordinate helpers ────────────────────────────────────────────────────────
+// ── Marching-squares segment extraction ───────────────────────────────────────
+
+function buildIsolineSegments(data) {
+    const result = {};
+    for (const level of ISO_LEVELS) {
+        const segs = [];
+        const il = (a, b, va, vb) => a + (level - va) / (vb - va) * (b - a);
+        for (let y = 0; y < TH - 1; y++) {
+            for (let x = 0; x < TW - 1; x++) {
+                const v0 = data[ y      * TW +  x     ];
+                const v1 = data[ y      * TW + (x + 1)];
+                const v2 = data[(y + 1) * TW + (x + 1)];
+                const v3 = data[(y + 1) * TW +  x     ];
+                const code = (v0 >= level ? 8 : 0)
+                           | (v1 >= level ? 4 : 0)
+                           | (v2 >= level ? 2 : 0)
+                           | (v3 >= level ? 1 : 0);
+                if (code === 0 || code === 15) continue;
+
+                const top    = { x: il(x, x+1, v0, v1), y };
+                const right  = { x: x+1, y: il(y, y+1, v1, v2) };
+                const bottom = { x: il(x, x+1, v3, v2), y: y+1 };
+                const left   = { x,      y: il(y, y+1, v0, v3) };
+                const push = (a, b) => segs.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y });
+
+                switch (code) {
+                    case  1: push(left, bottom);              break;
+                    case  2: push(bottom, right);             break;
+                    case  3: push(left, right);               break;
+                    case  4: push(top, right);                break;
+                    case  5: push(left, top); push(bottom, right); break;
+                    case  6: push(top, bottom);               break;
+                    case  7: push(left, top);                 break;
+                    case  8: push(top, left);                 break;
+                    case  9: push(top, bottom);               break;
+                    case 10: push(top, right); push(left, bottom); break;
+                    case 11: push(top, right);                break;
+                    case 12: push(left, right);               break;
+                    case 13: push(bottom, right);             break;
+                    case 14: push(left, bottom);              break;
+                }
+            }
+        }
+        result[level] = segs;
+    }
+    return result;
+}
+
+// ── Core traversal rule ───────────────────────────────────────────────────────
+
+function pointSegDist(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/**
+ * Returns the set of isoline levels whose segments are within radius r
+ * of world position (wx, wy). Each level is counted at most once
+ * (all segments of a level are "one line").
+ */
+function touchedLevels(wx, wy, r) {
+    const touched = [];
+    for (const level of ISO_LEVELS) {
+        for (const { ax, ay, bx, by } of isoSegments[level]) {
+            if (pointSegDist(wx, wy, ax, ay, bx, by) <= r) {
+                touched.push(level);
+                break; // this level is hit; don't count it again
+            }
+        }
+    }
+    return touched;
+}
+
+// ── Canvas & coordinate helpers ───────────────────────────────────────────────
 
 const canvas = document.getElementById('main-canvas');
 const ctx    = canvas.getContext('2d');
 
 function toCanvas(wx, wy) {
-    return { x: wx * canvas.width  / TW,
-             y: wy * canvas.height / TH };
+    return { x: wx * canvas.width / TW, y: wy * canvas.height / TH };
 }
 
 function toWorld(cx, cy) {
-    return { x: cx * TW / canvas.width,
-             y: cy * TH / canvas.height };
+    return { x: cx * TW / canvas.width, y: cy * TH / canvas.height };
 }
 
 function sampleE(wx, wy) {
@@ -433,281 +468,221 @@ function sampleE(wx, wy) {
     return terrain[y * TW + x];
 }
 
-function sampleG(wx, wy) {
-    const x = Math.max(1, Math.min(TW - 2, Math.round(wx)));
-    const y = Math.max(1, Math.min(TH - 2, Math.round(wy)));
-    return gradMap[y * TW + x];
-}
-
-/** Approximate gap (world units) between adjacent isolines at (wx, wy). */
-function isoGap(wx, wy) {
-    const g = sampleG(wx, wy);
-    return g < 0.001 ? Infinity : 1 / g;
-}
-
-// ── Offscreen terrain image ───────────────────────────────────────────────────
-
-let terrainImage = null; // ImageBitmap
-
-function elevRGB(e) {
-    // Parchment: low=light tan, high=dark brown
-    return [
-        210 - e * 8,
-        185 - e * 9,
-        140 - e * 8,
-    ];
-}
-
-/** Blend src into [r,g,b] by alpha ∈ [0,1]. */
-function blendRGB(base, [sr, sg, sb], alpha) {
-    return [
-        base[0] + (sr - base[0]) * alpha,
-        base[1] + (sg - base[1]) * alpha,
-        base[2] + (sb - base[2]) * alpha,
-    ];
-}
+// ── Terrain background image ──────────────────────────────────────────────────
 
 function buildTerrainImage() {
     const W = canvas.width, H = canvas.height;
-    const imgData = ctx.createImageData(W, H);
-    const d = imgData.data;
+    const img = ctx.createImageData(W, H);
+    const d   = img.data;
+    const sx  = TW / W, sy = TH / H;
 
-    const scaleX = TW / W, scaleY = TH / H;
-
-    // Precompute per-cell traversability overlay colour (traversability mode)
-    // For steepness mode we sample gradient on the fly.
+    let maxGrad = 0;
+    for (let i = 0; i < gradMap.length; i++) if (gradMap[i] > maxGrad) maxGrad = gradMap[i];
 
     for (let py = 0; py < H; py++) {
         for (let px = 0; px < W; px++) {
-            const wx = px * scaleX, wy = py * scaleY;
-            const gxi = Math.max(0, Math.min(TW - 1, Math.round(wx)));
-            const gyi = Math.max(0, Math.min(TH - 1, Math.round(wy)));
+            const gxi = Math.max(0, Math.min(TW - 1, Math.round(px * sx)));
+            const gyi = Math.max(0, Math.min(TH - 1, Math.round(py * sy)));
+            const e   = terrain[gyi * TW + gxi];
+            const g   = gradMap [gyi * TW + gxi];
 
-            const e  = terrain[gyi * TW + gxi];
-            const g  = gradMap[gyi * TW + gxi];
-            const gap = g < 0.001 ? Infinity : 1 / g;
+            // Parchment base: low=light tan, high=dark brown
+            let r = 210 - e * 8;
+            let gr = 185 - e * 9;
+            let b = 140 - e * 8;
 
-            let rgb = elevRGB(e);
-
-            // ── Isoline: darken pixels near integer elevation ──
-            if (e > 0.5 && e < 9.5) {
-                const frac = e - Math.floor(e);
-                const thresh = 0.055;
-                if (frac < thresh || frac > 1 - thresh) {
-                    rgb = [rgb[0] * 0.50, rgb[1] * 0.45, rgb[2] * 0.40];
-                }
-            }
-
-            // ── Overlay ──
-            if (overlayMode === 'traversability') {
-                let ovRGB, ovAlpha = 0.38;
-                if (gap >= UNITS.artillery.need)       ovRGB = [50,  140,  40]; // all pass — green
-                else if (gap >= UNITS.cavalry.need)    ovRGB = [160, 140,  20]; // inf+cav — yellow
-                else if (gap >= UNITS.infantry.need)   ovRGB = [170,  80,  20]; // inf only — orange
-                else                                   ovRGB = [160,  20,  20]; // none     — red
-                rgb = blendRGB(rgb, ovRGB, ovAlpha);
-            } else if (overlayMode === 'steepness') {
+            if (overlayMode === 'steepness') {
                 const steep = Math.min(1, g / 0.35);
-                rgb = blendRGB(rgb, [180, 30, 10], steep * 0.45);
+                r  = r  + (160 - r)  * steep * 0.40;
+                gr = gr + (30  - gr) * steep * 0.40;
+                b  = b  + (10  - b)  * steep * 0.40;
             }
 
             const idx = (py * W + px) * 4;
-            d[idx]     = Math.round(rgb[0]);
-            d[idx + 1] = Math.round(rgb[1]);
-            d[idx + 2] = Math.round(rgb[2]);
+            d[idx]     = Math.round(r);
+            d[idx + 1] = Math.round(gr);
+            d[idx + 2] = Math.round(b);
             d[idx + 3] = 255;
         }
     }
 
-    // Draw to an offscreen canvas and convert to ImageBitmap for fast reuse
     const off = document.createElement('canvas');
     off.width = W; off.height = H;
-    off.getContext('2d').putImageData(imgData, 0, 0);
+    off.getContext('2d').putImageData(img, 0, 0);
     return createImageBitmap(off).then(bmp => { terrainImage = bmp; });
 }
 
-// ── Marching-squares isolines (vector, drawn on top) ─────────────────────────
-
-function getMSSegments(level) {
-    const segs = [];
-    const lerp = (a, b, va, vb) => a + (level - va) / (vb - va) * (b - a);
-
-    for (let y = 0; y < TH - 1; y++) {
-        for (let x = 0; x < TW - 1; x++) {
-            const v0 = terrain[ y      * TW +  x     ];
-            const v1 = terrain[ y      * TW + (x + 1)];
-            const v2 = terrain[(y + 1) * TW + (x + 1)];
-            const v3 = terrain[(y + 1) * TW +  x     ];
-
-            const code = (v0 >= level ? 8 : 0)
-                       | (v1 >= level ? 4 : 0)
-                       | (v2 >= level ? 2 : 0)
-                       | (v3 >= level ? 1 : 0);
-
-            if (code === 0 || code === 15) continue;
-
-            const top    = { x: lerp(x, x + 1, v0, v1), y };
-            const right  = { x: x + 1, y: lerp(y, y + 1, v1, v2) };
-            const bottom = { x: lerp(x, x + 1, v3, v2), y: y + 1 };
-            const left   = { x,         y: lerp(y, y + 1, v0, v3) };
-
-            switch (code) {
-                case  1: segs.push([left, bottom]);   break;
-                case  2: segs.push([bottom, right]);  break;
-                case  3: segs.push([left, right]);    break;
-                case  4: segs.push([top, right]);     break;
-                case  5: segs.push([left, top], [bottom, right]); break;
-                case  6: segs.push([top, bottom]);    break;
-                case  7: segs.push([left, top]);      break;
-                case  8: segs.push([top, left]);      break;
-                case  9: segs.push([top, bottom]);    break;
-                case 10: segs.push([top, right], [left, bottom]); break;
-                case 11: segs.push([top, right]);     break;
-                case 12: segs.push([left, right]);    break;  // actually bottom-left→top-right... remapped above
-                case 13: segs.push([bottom, right]);  break;
-                case 14: segs.push([left, bottom]);   break;
-            }
-        }
-    }
-    return segs;
-}
-
-// ── Main draw ─────────────────────────────────────────────────────────────────
+// ── Draw ──────────────────────────────────────────────────────────────────────
 
 function drawFrame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 1. Terrain background
     if (terrainImage) ctx.drawImage(terrainImage, 0, 0);
+
+    const scaleX = canvas.width  / TW;
+    const scaleY = canvas.height / TH;
+    const dispScale = Math.min(scaleX, scaleY); // keep balls circular
+
+    // ── All isolines (dim background lines) ──────────────────────────────────
+    ctx.save();
+    for (const level of ISO_LEVELS) {
+        ctx.strokeStyle = 'rgba(80, 50, 18, 0.55)';
+        ctx.lineWidth   = 1;
+        ctx.beginPath();
+        for (const { ax, ay, bx, by } of isoSegments[level]) {
+            ctx.moveTo(ax * scaleX, ay * scaleY);
+            ctx.lineTo(bx * scaleX, by * scaleY);
+        }
+        ctx.stroke();
+    }
+    ctx.restore();
 
     if (!mouseWorld) return;
 
     const { x: wx, y: wy } = mouseWorld;
-    const gap = isoGap(wx, wy);
-    const unit = UNITS[selectedType];
-    const canPass = gap >= unit.need;
-
-    const scaleX = canvas.width  / TW;
-    const scaleY = canvas.height / TH;
-    const ballPx = unit.radius * scaleX;
     const { x: cx, y: cy } = toCanvas(wx, wy);
 
-    // 2. Highlight the two bounding isolines near cursor
-    const e = sampleE(wx, wy);
-    const loLevel = Math.max(1, Math.floor(e));
-    const hiLevel = Math.min(9, Math.ceil(e));
+    // ── Compute touched levels and pass/fail per unit ─────────────────────────
+    const unitResults = {};
+    // Union of all levels touched by any unit (use artillery as the outer bound)
+    const artRadius   = scaledRadius('artillery');
+    const allTouched  = new Set(touchedLevels(wx, wy, artRadius));
 
-    if (loLevel !== hiLevel) {
-        for (const level of [loLevel, hiLevel]) {
-            const segs = getMSSegments(level);
+    for (const type of UNIT_ORDER) {
+        const r       = scaledRadius(type);
+        const touched = touchedLevels(wx, wy, r);
+        unitResults[type] = {
+            r,
+            touched,
+            pass: touched.length <= 1,
+        };
+    }
+
+    // ── Highlight touched isoline levels ─────────────────────────────────────
+    // Highlight only segments actually within artillery radius (closest approach
+    // to the ball surface), coloured by how many units are blocked by that level.
+    if (allTouched.size > 0) {
+        for (const level of allTouched) {
+            // Count how many unit types have this level in their touched set
+            const blocksCount = UNIT_ORDER.filter(t =>
+                unitResults[t].touched.includes(level)
+            ).length;
+
+            // More units affected → warmer/brighter highlight
+            const alpha = 0.55 + blocksCount * 0.12;
             ctx.save();
-            ctx.strokeStyle = canPass ? 'rgba(120,220,80,0.85)' : 'rgba(220,80,80,0.85)';
+            ctx.strokeStyle = `rgba(220, 120, 30, ${alpha})`;
             ctx.lineWidth   = 2.5;
             ctx.beginPath();
-            for (const [a, b] of segs) {
-                ctx.moveTo(a.x * scaleX, a.y * scaleY);
-                ctx.lineTo(b.x * scaleX, b.y * scaleY);
+            for (const { ax, ay, bx, by } of isoSegments[level]) {
+                if (pointSegDist(wx, wy, ax, ay, bx, by) <= artRadius) {
+                    ctx.moveTo(ax * scaleX, ay * scaleY);
+                    ctx.lineTo(bx * scaleX, by * scaleY);
+                }
             }
             ctx.stroke();
             ctx.restore();
         }
     }
 
-    // 3. Gap measurement bracket (along gradient direction)
-    const gxi = Math.max(1, Math.min(TW - 2, Math.round(wx)));
-    const gyi = Math.max(1, Math.min(TH - 2, Math.round(wy)));
-    const ddx = (terrain[gyi * TW + (gxi + 1)] - terrain[gyi * TW + (gxi - 1)]) * 0.5;
-    const ddy = (terrain[(gyi + 1) * TW + gxi] - terrain[(gyi - 1) * TW + gxi]) * 0.5;
-    const gMag = Math.hypot(ddx, ddy);
-
-    if (gMag > 0.001 && gap < Infinity) {
-        const ndx = ddx / gMag;   // gradient direction (steepest ascent)
-        const ndy = ddy / gMag;
-        const perpX = -ndy, perpY = ndx; // perpendicular
-
-        const halfGapPx = Math.min((gap * scaleX) * 0.5, 200);
-        const bracketLen = 7;
-
-        const bracketColor = canPass ? 'rgba(120,220,80,0.9)' : 'rgba(220,80,80,0.9)';
+    // ── Stacked circles (artillery → cavalry → infantry, outside-in) ─────────
+    for (const type of UNIT_ORDER) {
+        const { r, pass } = unitResults[type];
+        const rPx = r * dispScale;
+        const fillColor   = pass ? UNIT_COLORS[type] : '#dd3333';
+        const strokeColor = pass ? UNIT_COLORS[type] : '#ee4444';
 
         ctx.save();
-        ctx.strokeStyle = bracketColor;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([5, 4]);
         ctx.beginPath();
-        ctx.moveTo(cx - ndx * halfGapPx, cy - ndy * halfGapPx);
-        ctx.lineTo(cx + ndx * halfGapPx, cy + ndy * halfGapPx);
+        ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+        ctx.fillStyle   = fillColor + '35';
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth   = pass ? 2 : 2.5;
+        ctx.fill();
         ctx.stroke();
-        ctx.setLineDash([]);
-
-        for (const sign of [-1, 1]) {
-            const bx = cx + sign * ndx * halfGapPx;
-            const by = cy + sign * ndy * halfGapPx;
-            ctx.beginPath();
-            ctx.moveTo(bx - perpX * bracketLen, by - perpY * bracketLen);
-            ctx.lineTo(bx + perpX * bracketLen, by + perpY * bracketLen);
-            ctx.stroke();
-        }
         ctx.restore();
     }
 
-    // 4. Ball
+    // ── Crosshair at ball centre ──────────────────────────────────────────────
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, ballPx, 0, Math.PI * 2);
-    ctx.fillStyle   = unit.color + '55'; // semi-transparent fill
-    ctx.strokeStyle = canPass ? unit.color : '#e04040';
-    ctx.lineWidth   = 2;
-    ctx.fill();
-    ctx.stroke();
-
-    // Thin crosshair at center
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(cx - 5, cy); ctx.lineTo(cx + 5, cy);
-    ctx.moveTo(cx, cy - 5); ctx.lineTo(cx, cy + 5);
+    ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
+    ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
     ctx.stroke();
     ctx.restore();
 
-    // 5. Tooltip label
-    const labelX = cx + ballPx + 8;
-    const labelY = cy - 4;
+    // ── Tooltip ───────────────────────────────────────────────────────────────
+    const e       = sampleE(wx, wy);
+    const maxRPx  = artRadius * dispScale;
+    const labelX  = cx + maxRPx + 8;
+    const labelY  = cy - 4;
+
     ctx.save();
     ctx.font = '11px Georgia';
-    ctx.fillStyle = '#f4e4bc';
-    const gapStr  = gap === Infinity ? '∞' : gap.toFixed(1);
-    const needStr = unit.need.toString();
-    ctx.fillText(`elev ${e.toFixed(1)}`, labelX, labelY);
-    ctx.fillText(`gap ${gapStr} / need ${needStr}`, labelX, labelY + 14);
+
+    // Background box for readability
+    const lines = [`elev ${e.toFixed(1)}`];
+    for (const type of ['infantry','cavalry','artillery']) {
+        const { touched, pass } = unitResults[type];
+        lines.push(`${type[0].toUpperCase()}${type.slice(1,3)} r=${unitResults[type].r.toFixed(0)} · ${touched.length} line${touched.length !== 1 ? 's' : ''} · ${pass ? 'pass' : 'block'}`);
+    }
+
+    const lineH = 13, pad = 5;
+    const boxW  = 170, boxH = lines.length * lineH + pad * 2;
+    let bx = labelX, by = labelY - lineH;
+    if (bx + boxW > canvas.width  - 4) bx = cx - boxW - maxRPx - 8;
+    if (by + boxH > canvas.height - 4) by = canvas.height - boxH - 4;
+
+    ctx.fillStyle = 'rgba(30, 18, 8, 0.78)';
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.strokeStyle = 'rgba(90,60,20,0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, boxW, boxH);
+
+    for (let i = 0; i < lines.length; i++) {
+        ctx.fillStyle = i === 0 ? '#d4a574' : '#f4e4bc';
+        ctx.fillText(lines[i], bx + pad, by + pad + lineH * (i + 0.75));
+    }
     ctx.restore();
 
-    // 6. Update sidebar status
-    updateSidebar(gap, e);
+    updateSidebar(unitResults, e);
 }
 
-function updateSidebar(gap, e) {
-    const gapStr = gap === Infinity ? '∞ (flat)' : gap.toFixed(1) + ' units';
-    document.getElementById('gap-info').innerHTML =
-        `Gap: <span>${gapStr}</span>  ·  elev: <span>${e.toFixed(1)}</span>`;
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
-    for (const [type, unit] of Object.entries(UNITS)) {
-        const el = document.getElementById(`status-${type}`);
-        if (gap === Infinity) {
-            el.textContent = 'PASS'; el.className = 'status-value sv-flat';
-        } else if (gap >= unit.need) {
-            el.textContent = 'PASS'; el.className = 'status-value sv-pass';
-        } else {
-            el.textContent = 'BLOCK'; el.className = 'status-value sv-block';
-        }
+function updateSizeLabel() {
+    const ri = (BASE_RADII.infantry  * sizeScale).toFixed(1);
+    const rc = (BASE_RADII.cavalry   * sizeScale).toFixed(1);
+    const ra = (BASE_RADII.artillery * sizeScale).toFixed(1);
+    document.getElementById('size-label').innerHTML =
+        `<span>${sizeScale.toFixed(2)}×</span> &nbsp;·&nbsp; r = ${ri} / ${rc} / ${ra}`;
+    // Also update status row labels
+    document.getElementById('label-infantry').textContent  = `Infantry  r=${ri}`;
+    document.getElementById('label-cavalry').textContent   = `Cavalry  r=${rc}`;
+    document.getElementById('label-artillery').textContent = `Artillery  r=${ra}`;
+}
+
+function updateSidebar(unitResults, e) {
+    document.getElementById('elev-info').innerHTML =
+        `Elevation: <span>${e.toFixed(2)}</span>`;
+
+    for (const type of ['infantry', 'cavalry', 'artillery']) {
+        const { touched, pass } = unitResults[type];
+        const sv = document.getElementById(`status-${type}`);
+        const sl = document.getElementById(`lines-${type}`);
+        sv.textContent = pass ? 'PASS' : 'BLOCK';
+        sv.className   = `status-value ${pass ? 'sv-pass' : 'sv-block'}`;
+        sl.textContent = `${touched.length} line${touched.length !== 1 ? 's' : ''}`;
     }
 }
 
 function clearSidebar() {
-    document.getElementById('gap-info').textContent = 'Move cursor over the terrain';
-    for (const type of Object.keys(UNITS)) {
-        const el = document.getElementById(`status-${type}`);
-        el.textContent = '—'; el.className = 'status-value sv-dash';
+    document.getElementById('elev-info').textContent = 'Move cursor over the terrain';
+    for (const type of ['infantry', 'cavalry', 'artillery']) {
+        document.getElementById(`status-${type}`).textContent = '—';
+        document.getElementById(`status-${type}`).className   = 'status-value sv-dash';
+        document.getElementById(`lines-${type}`).textContent  = '';
     }
 }
 
@@ -725,13 +700,10 @@ canvas.addEventListener('mouseleave', () => {
     clearSidebar();
 });
 
-document.querySelectorAll('.unit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedType = btn.dataset.type;
-        if (mouseWorld) drawFrame();
-    });
+document.getElementById('size-slider').addEventListener('input', function () {
+    sizeScale = parseFloat(this.value);
+    updateSizeLabel();
+    if (mouseWorld) drawFrame();
 });
 
 document.querySelectorAll('.overlay-btn').forEach(btn => {
@@ -748,17 +720,14 @@ document.getElementById('btn-new-terrain').addEventListener('click', () => {
     init();
 });
 
-window.addEventListener('resize', () => {
-    resizeCanvas();
-    rebuildAndDraw();
-});
+window.addEventListener('resize', () => { resizeCanvas(); rebuildAndDraw(); });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 function resizeCanvas() {
-    const container = document.getElementById('canvas-container');
-    canvas.width  = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const c = document.getElementById('canvas-container');
+    canvas.width  = c.clientWidth;
+    canvas.height = c.clientHeight;
 }
 
 function rebuildAndDraw() {
@@ -766,8 +735,9 @@ function rebuildAndDraw() {
 }
 
 function init() {
-    terrain  = generateTerrain(seed);
-    gradMap  = computeGradientMap(terrain);
+    terrain     = generateTerrain(seed);
+    gradMap     = computeGradientMap(terrain);
+    isoSegments = buildIsolineSegments(terrain);
     resizeCanvas();
     rebuildAndDraw();
 }
