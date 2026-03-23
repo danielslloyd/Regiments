@@ -605,20 +605,41 @@ function drawFrame() {
         }
     }
 
-    // ── Stacked circles (artillery → cavalry → infantry, outside-in) ─────────
-    for (const type of UNIT_ORDER) {
-        const { r, pass } = unitResults[type];
-        const rPx = r * dispScale;
-        const fillColor   = pass ? UNIT_COLORS[type] : '#dd3333';
-        const strokeColor = pass ? UNIT_COLORS[type] : '#ee4444';
+    // ── Stacked circles: each unit gets its own annular region ──────────────
+    // Artillery owns the ring from cavalry-radius to artillery-radius.
+    // Cavalry owns the ring from infantry-radius to cavalry-radius.
+    // Infantry owns the central disk.
+    // Non-overlapping fills eliminate color bleeding between units.
 
+    const artRPx = unitResults.artillery.r * dispScale;
+    const cavRPx = unitResults.cavalry.r   * dispScale;
+    const infRPx = unitResults.infantry.r  * dispScale;
+
+    const annuli = [
+        { type: 'artillery', outerR: artRPx, innerR: cavRPx },
+        { type: 'cavalry',   outerR: cavRPx, innerR: infRPx },
+        { type: 'infantry',  outerR: infRPx, innerR: 0 },
+    ];
+
+    for (const { type, outerR, innerR } of annuli) {
+        const { pass } = unitResults[type];
         ctx.save();
         ctx.beginPath();
-        ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
-        ctx.fillStyle   = fillColor + '35';
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth   = pass ? 2 : 2.5;
+        ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
+        if (innerR > 0) ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true); // punch hole
+        ctx.fillStyle = (pass ? UNIT_COLORS[type] : '#dd3333') + '55';
         ctx.fill();
+        ctx.restore();
+    }
+
+    // Ring outlines drawn last so they sit on top of fills
+    for (const type of UNIT_ORDER) {
+        const { r, pass } = unitResults[type];
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * dispScale, 0, Math.PI * 2);
+        ctx.strokeStyle = pass ? UNIT_COLORS[type] : '#ee4444';
+        ctx.lineWidth   = pass ? 2 : 2.5;
         ctx.stroke();
         ctx.restore();
     }
