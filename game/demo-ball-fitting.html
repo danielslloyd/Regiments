@@ -57,7 +57,7 @@
     accent-color: #8b7355;
     cursor: pointer;
   }
-  #size-label, #brush-size-label {
+  #size-label, #brush-size-label, #ratio-label, #contour-label {
     font-size: 0.75rem;
     color: #c8b080;
     text-align: center;
@@ -219,6 +219,16 @@
     <input type="range" id="size-slider" min="0.2" max="4" step="0.05" value="1">
     <div id="size-label">Scale: 1.00&times;</div>
   </div>
+  <div class="slider-group">
+    <input type="range" id="ratio-slider" min="1" max="3" step="0.05" value="2">
+    <div id="ratio-label">Ratio: inf 1&times; / cav 1.5&times; / art 2&times;</div>
+  </div>
+
+  <div class="section-title">Contour lines</div>
+  <div class="slider-group">
+    <input type="range" id="contour-slider" min="0.25" max="4" step="0.25" value="1">
+    <div id="contour-label">Interval: 1.0 &mdash; 9 lines</div>
+  </div>
 
   <div class="section-title">At cursor</div>
   <div id="status-panel">
@@ -264,21 +274,14 @@
   <div class="section-title">Legend</div>
   <div class="legend-section">
     <div class="legend-row">
-      <div class="legend-dot" style="background:#4a90d9"></div>
-      <span>Infantry (r=10)</span>
+      <div class="legend-dot" style="background:rgba(80,210,80,0.85)"></div>
+      <span>Green ring = passes (≤1 isoline)</span>
     </div>
     <div class="legend-row">
-      <div class="legend-dot" style="background:#c8a040"></div>
-      <span>Cavalry (r=15)</span>
+      <div class="legend-dot" style="background:rgba(220,60,60,0.85)"></div>
+      <span>Red dashed = blocked (&gt;1 isoline)</span>
     </div>
-    <div class="legend-row">
-      <div class="legend-dot" style="background:#d94a4a"></div>
-      <span>Artillery (r=20)</span>
-    </div>
-    <div class="legend-row">
-      <div class="legend-dot" style="background:#e06060"></div>
-      <span>Red = blocked (&gt;1 isoline crossed)</span>
-    </div>
+    <div style="font-size:0.68rem;color:#a08060;margin-top:3px;">Smallest ring = infantry, middle = cavalry, largest = artillery</div>
     <div class="legend-divider"></div>
     <div style="font-size:0.68rem;color:#a08060;margin-bottom:2px;">Reachability overlay:</div>
     <div class="legend-row">
@@ -312,13 +315,25 @@
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────────
 const TW = 200, TH = 200;
-const ISO_LEVELS = [1,2,3,4,5,6,7,8,9];
 const UNIT_ORDER = ['artillery','cavalry','infantry'];
-const BASE_RADII = { infantry:10, cavalry:15, artillery:20 };
 const UNIT_COLORS = { infantry:'#4a90d9', cavalry:'#c8a040', artillery:'#d94a4a' };
+
+function computeIsoLevels(interval) {
+  const out = [];
+  // Round to avoid float accumulation (e.g. 0.25*3 = 0.75000...1)
+  for (let n = 1; ; n++) {
+    const lv = Math.round(n * interval * 1000) / 1000;
+    if (lv >= 10) break;
+    out.push(lv);
+  }
+  return out;
+}
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let terrain, gradMap, isoSegments;
+let ISO_LEVELS = computeIsoLevels(1.0);
+let contourInterval = 1.0;
+let ratioScale = 2.0;
 let sizeScale = 1.0;
 let mouseWorld = null;
 let overlayMode = 'steepness';
@@ -521,7 +536,15 @@ function sampleE(wx, wy) {
   const yi = Math.max(0, Math.min(TH - 1, Math.round(wy)));
   return terrain[yi * TW + xi];
 }
-function scaledRadius(type) { return BASE_RADII[type] * sizeScale; }
+// Infantry = base, cavalry = base*(1+spread*0.5), artillery = base*(1+spread)
+// where spread = ratioScale-1, so at ratioScale=2: 1× / 1.5× / 2×
+function scaledRadius(type) {
+  const base = 10 * sizeScale;
+  const spread = ratioScale - 1;
+  if (type === 'infantry')  return base;
+  if (type === 'cavalry')   return base * (1 + spread * 0.5);
+  /* artillery */           return base * (1 + spread);
+}
 
 // ── Terrain image (synchronous) ────────────────────────────────────────────────
 function buildTerrainImage() {
@@ -628,9 +651,9 @@ function drawFrame() {
   const scaleX = W / TW;
   const scaleY = H / TH;
 
-  // Map level 1–9 to a colour: 1=green, 5=red, 9=white
+  // Map level 0–10 to a colour: low=green, mid=red, high=white
   function isoColor(lv, alpha) {
-    const t = (lv - 1) / 8; // 0..1
+    const t = lv / 10; // 0..1
     let r, g, b;
     if (t < 0.5) {
       // green → red
@@ -743,38 +766,11 @@ function drawFrame() {
     ctx.restore();
   }
 
-  // 8. Draw annuli fills
-  const artR_px = unitResults['artillery'].rPx;
-  const cavR_px = unitResults['cavalry'].rPx;
-  const infR_px = unitResults['infantry'].rPx;
-
-  function drawAnnulus(outerR, innerR, r, g, bv, alpha) {
-    ctx.save();
-    ctx.fillStyle = `rgba(${r},${g},${bv},${alpha})`;
-    ctx.beginPath();
-    ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
-    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Artillery annulus: cavRPx to artRPx
-  drawAnnulus(artR_px, cavR_px, 217, 74, 74, unitResults['artillery'].pass ? 0.18 : 0.32);
-  // Cavalry annulus: infRPx to cavRPx
-  drawAnnulus(cavR_px, infR_px, 200, 160, 64, unitResults['cavalry'].pass ? 0.18 : 0.32);
-  // Infantry: 0 to infRPx
-  ctx.save();
-  ctx.fillStyle = unitResults['infantry'].pass ? 'rgba(74,144,217,0.18)' : 'rgba(74,144,217,0.32)';
-  ctx.beginPath();
-  ctx.arc(cx, cy, infR_px, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // 9. Ring outlines on top
+  // 8. Ring outlines — green solid if pass, red dashed if blocked; size differentiates units
   for (const type of UNIT_ORDER) {
     const { rPx, pass } = unitResults[type];
     ctx.save();
-    ctx.strokeStyle = pass ? UNIT_COLORS[type] : '#e06060';
+    ctx.strokeStyle = pass ? 'rgba(80,210,80,0.85)' : 'rgba(220,60,60,0.9)';
     ctx.lineWidth = pass ? 1.5 : 2;
     if (!pass) ctx.setLineDash([4, 3]);
     ctx.beginPath();
@@ -950,6 +946,27 @@ document.getElementById('size-slider').addEventListener('input', function() {
   document.getElementById('size-label').textContent = `Scale: ${sizeScale.toFixed(2)}\u00d7`;
   if (overlayMode === 'reachability') buildTerrainImage();
   drawFrame();
+});
+
+document.getElementById('ratio-slider').addEventListener('input', function() {
+  ratioScale = parseFloat(this.value);
+  const s = ratioScale;
+  const cavMult = (1 + (s - 1) * 0.5).toFixed(2);
+  const artMult = s.toFixed(2);
+  document.getElementById('ratio-label').textContent =
+    `Ratio: inf 1\u00d7 / cav ${cavMult}\u00d7 / art ${artMult}\u00d7`;
+  if (overlayMode === 'reachability') buildTerrainImage();
+  drawFrame();
+});
+
+document.getElementById('contour-slider').addEventListener('input', function() {
+  contourInterval = parseFloat(this.value);
+  ISO_LEVELS = computeIsoLevels(contourInterval);
+  isoSegments = buildIsolineSegments(terrain);
+  document.getElementById('contour-label').textContent =
+    `Interval: ${contourInterval.toFixed(2)} \u2014 ${ISO_LEVELS.length} line${ISO_LEVELS.length !== 1 ? 's' : ''}`;
+  offCanvas = null;
+  rebuildAndDraw();
 });
 
 document.getElementById('brush-size').addEventListener('input', function() {
