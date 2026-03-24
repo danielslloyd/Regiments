@@ -1,810 +1,934 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ball Fitting Through Lines — Regiments Demo</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Georgia', serif;
-            background: #2c2416;
-            color: #f4e4bc;
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
-
-        /* ── Panel ── */
-        #panel {
-            width: 290px;
-            min-width: 290px;
-            background: #3d2914;
-            border-right: 3px solid #5a4630;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
-            overflow-y: auto;
-        }
-
-        #panel h1 {
-            font-size: 1.2rem;
-            color: #d4a574;
-            text-align: center;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid #5a4630;
-            line-height: 1.4;
-        }
-
-        .description {
-            font-size: 0.78rem;
-            color: #a89070;
-            line-height: 1.55;
-        }
-
-        .section-title {
-            font-size: 0.8rem;
-            color: #d4a574;
-            text-transform: uppercase;
-            letter-spacing: 0.07rem;
-            border-bottom: 1px solid #5a4630;
-            padding-bottom: 0.25rem;
-        }
-
-        /* ── Slider ── */
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        #size-slider {
-            width: 100%;
-            accent-color: #d4a574;
-            cursor: pointer;
-            height: 4px;
-        }
-
-        #size-label {
-            font-size: 0.75rem;
-            color: #a89070;
-            text-align: center;
-        }
-
-        #size-label span { color: #d4a574; }
-
-        /* ── Status panel ── */
-        #status-panel {
-            background: #2c2416;
-            border: 2px solid #5a4630;
-            padding: 0.65rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.45rem;
-        }
-
-        #elev-info {
-            font-size: 0.76rem;
-            color: #a89070;
-            min-height: 1.1em;
-        }
-
-        #elev-info span { color: #d4a574; }
-
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 1.5px solid rgba(255,255,255,0.2);
-            flex-shrink: 0;
-        }
-
-        .status-label { color: #a89070; flex: 1; }
-
-        .status-lines {
-            font-size: 0.7rem;
-            color: #7a6050;
-            min-width: 40px;
-            text-align: right;
-        }
-
-        .status-value {
-            font-size: 0.7rem;
-            padding: 0.12rem 0.35rem;
-            border-radius: 2px;
-            font-weight: bold;
-            min-width: 38px;
-            text-align: center;
-        }
-
-        .sv-pass  { background: #243d18; color: #7fca50; }
-        .sv-block { background: #3d1818; color: #ca5050; }
-        .sv-dash  { color: #5a4630; }
-
-        /* ── Overlay toggle ── */
-        .overlay-buttons { display: flex; flex-direction: column; gap: 0.35rem; }
-
-        .overlay-btn {
-            padding: 0.5rem 0.75rem;
-            font-family: 'Georgia', serif;
-            font-size: 0.82rem;
-            background: #5a4630;
-            border: 2px solid #8b7355;
-            color: #f4e4bc;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.15s;
-        }
-
-        .overlay-btn:hover { background: #7a5f40; }
-        .overlay-btn.active { background: #8b7355; border-color: #d4a574; }
-
-        /* ── Controls ── */
-        .controls { display: flex; flex-direction: column; gap: 0.35rem; }
-
-        .controls button {
-            padding: 0.55rem;
-            font-family: 'Georgia', serif;
-            font-size: 0.85rem;
-            background: #5a4630;
-            border: 2px solid #8b7355;
-            color: #f4e4bc;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .controls button:hover { background: #7a5f40; border-color: #d4a574; }
-
-        /* ── Legend ── */
-        #legend { display: flex; flex-direction: column; gap: 0.35rem; }
-
-        .legend-row {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            font-size: 0.74rem;
-            color: #a89070;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.2);
-            flex-shrink: 0;
-        }
-
-        /* ── Footer note ── */
-        .footnote {
-            margin-top: auto;
-            font-size: 0.71rem;
-            color: #5a4630;
-            border-top: 1px solid #5a4630;
-            padding-top: 0.5rem;
-            line-height: 1.4;
-        }
-
-        /* ── Canvas ── */
-        #canvas-container { flex: 1; position: relative; overflow: hidden; }
-
-        #main-canvas {
-            display: block;
-            cursor: crosshair;
-        }
-
-        /* ── Scrollbar ── */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #2c2416; }
-        ::-webkit-scrollbar-thumb { background: #5a4630; border-radius: 3px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ball Fitting Through Iso-Lines</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #2c2416;
+    color: #f4e4bc;
+    font-family: Georgia, serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #left-panel {
+    width: 290px;
+    min-width: 290px;
+    background: #1e1810;
+    border-right: 2px solid #5a4630;
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  h1 {
+    font-size: 1.05rem;
+    color: #d4a574;
+    border-bottom: 1px solid #5a4630;
+    padding-bottom: 6px;
+    line-height: 1.3;
+  }
+  .description {
+    font-size: 0.75rem;
+    color: #a08060;
+    line-height: 1.4;
+  }
+  .section-title {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: #d4a574;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #3a2e20;
+    padding-bottom: 3px;
+    margin-top: 4px;
+  }
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .slider-group input[type=range] {
+    width: 100%;
+    accent-color: #8b7355;
+    cursor: pointer;
+  }
+  #size-label, #brush-size-label {
+    font-size: 0.75rem;
+    color: #c8b080;
+    text-align: center;
+  }
+  #status-panel {
+    background: #2c2416;
+    border: 1px solid #5a4630;
+    border-radius: 4px;
+    padding: 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  #elev-info {
+    font-size: 0.75rem;
+    color: #a08060;
+    font-style: italic;
+  }
+  .unit-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.3);
+  }
+  .unit-label {
+    flex: 1;
+    color: #c8b080;
+  }
+  .lines-count {
+    color: #a08060;
+    font-size: 0.7rem;
+    min-width: 40px;
+    text-align: right;
+  }
+  .pass-block {
+    font-weight: bold;
+    font-size: 0.72rem;
+    min-width: 36px;
+    text-align: right;
+  }
+  .pass-block.pass { color: #60c060; }
+  .pass-block.block { color: #e06060; }
+  .overlay-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .overlay-btn {
+    background: #2c2416;
+    border: 1px solid #5a4630;
+    color: #c8b080;
+    font-family: Georgia, serif;
+    font-size: 0.76rem;
+    padding: 5px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .overlay-btn:hover { background: #3a2e1e; }
+  .overlay-btn.active { background: #8b7355; border-color: #d4a574; color: #f4e4bc; }
+  .brush-buttons {
+    display: flex;
+    gap: 0.3rem;
+  }
+  .brush-btn {
+    flex: 1;
+    background: #2c2416;
+    border: 1px solid #5a4630;
+    color: #c8b080;
+    font-family: Georgia, serif;
+    font-size: 0.78rem;
+    padding: 5px 4px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: center;
+    transition: background 0.15s;
+  }
+  .brush-btn:hover { background: #3a2e1e; }
+  .brush-btn.active { background: #8b7355; border-color: #d4a574; color: #f4e4bc; }
+  .legend-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.73rem;
+    color: #c8b080;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .legend-divider {
+    border-top: 1px solid #3a2e20;
+    margin: 2px 0;
+  }
+  .controls {
+    margin-top: 4px;
+  }
+  #btn-new-terrain {
+    width: 100%;
+    background: #5a4630;
+    border: 1px solid #8b7355;
+    color: #f4e4bc;
+    font-family: Georgia, serif;
+    font-size: 0.82rem;
+    padding: 7px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s;
+  }
+  #btn-new-terrain:hover { background: #6e5840; }
+  .footnote {
+    font-size: 0.68rem;
+    color: #7a6040;
+    line-height: 1.45;
+    font-style: italic;
+    border-top: 1px solid #3a2e20;
+    padding-top: 6px;
+  }
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #main-canvas {
+    display: block;
+    cursor: crosshair;
+  }
+</style>
 </head>
 <body>
+<div id="left-panel">
+  <h1>Ball Fitting Through Lines</h1>
+  <p class="description">Move cursor over terrain to test if a unit's ball fits between elevation iso-lines. Paint terrain with the brush.</p>
 
-<div id="panel">
-    <h1>Ball Fitting<br>Through Lines</h1>
+  <div class="section-title">Ball size</div>
+  <div class="slider-group">
+    <input type="range" id="size-slider" min="0.2" max="4" step="0.05" value="1">
+    <div id="size-label">Scale: 1.00&times;</div>
+  </div>
 
-    <p class="description">
-        A ball may occupy any position where it touches <em>at most one</em>
-        isoline. All segments sharing an elevation level count as a single line.
-        Hover over the map to see all three unit balls at once.
-    </p>
-
-    <div class="section-title">Ball size</div>
-    <div class="slider-group">
-        <input type="range" id="size-slider" min="0.2" max="4" step="0.05" value="1">
-        <div id="size-label">
-            <span>1.00×</span> &nbsp;·&nbsp; r = 10.0 / 15.0 / 20.0
-        </div>
+  <div class="section-title">At cursor</div>
+  <div id="status-panel">
+    <div id="elev-info">Move cursor over terrain</div>
+    <div class="unit-row" id="row-infantry">
+      <div class="status-dot" id="dot-infantry" style="background:#4a90d9"></div>
+      <div class="unit-label">Infantry</div>
+      <div class="lines-count" id="lines-infantry">&mdash;</div>
+      <div class="pass-block" id="pb-infantry">&mdash;</div>
     </div>
-
-    <div class="section-title">At cursor</div>
-    <div id="status-panel">
-        <div id="elev-info">Move cursor over the terrain</div>
-        <div class="status-row">
-            <div class="status-dot" style="background:#4a90d9"></div>
-            <span class="status-label" id="label-infantry">Infantry  r=10.0</span>
-            <span class="status-lines" id="lines-infantry"></span>
-            <span class="status-value sv-dash" id="status-infantry">—</span>
-        </div>
-        <div class="status-row">
-            <div class="status-dot" style="background:#c8a040"></div>
-            <span class="status-label" id="label-cavalry">Cavalry  r=15.0</span>
-            <span class="status-lines" id="lines-cavalry"></span>
-            <span class="status-value sv-dash" id="status-cavalry">—</span>
-        </div>
-        <div class="status-row">
-            <div class="status-dot" style="background:#d94a4a"></div>
-            <span class="status-label" id="label-artillery">Artillery  r=20.0</span>
-            <span class="status-lines" id="lines-artillery"></span>
-            <span class="status-value sv-dash" id="status-artillery">—</span>
-        </div>
+    <div class="unit-row" id="row-cavalry">
+      <div class="status-dot" id="dot-cavalry" style="background:#c8a040"></div>
+      <div class="unit-label">Cavalry</div>
+      <div class="lines-count" id="lines-cavalry">&mdash;</div>
+      <div class="pass-block" id="pb-cavalry">&mdash;</div>
     </div>
-
-    <div class="section-title">Overlay</div>
-    <div class="overlay-buttons">
-        <button class="overlay-btn active" data-overlay="steepness">Steepness (gradient)</button>
-        <button class="overlay-btn" data-overlay="none">None</button>
+    <div class="unit-row" id="row-artillery">
+      <div class="status-dot" id="dot-artillery" style="background:#d94a4a"></div>
+      <div class="unit-label">Artillery</div>
+      <div class="lines-count" id="lines-artillery">&mdash;</div>
+      <div class="pass-block" id="pb-artillery">&mdash;</div>
     </div>
+  </div>
 
-    <div class="section-title">Legend</div>
-    <div id="legend">
-        <div class="legend-row">
-            <div class="legend-dot" style="background:#4a90d9"></div>
-            Infantry (innermost)
-        </div>
-        <div class="legend-row">
-            <div class="legend-dot" style="background:#c8a040"></div>
-            Cavalry (middle)
-        </div>
-        <div class="legend-row">
-            <div class="legend-dot" style="background:#d94a4a"></div>
-            Artillery (outermost)
-        </div>
-        <div class="legend-row" style="margin-top:0.2rem;">
-            <div class="legend-dot" style="background:#e04040; opacity:0.5"></div>
-            Red = blocked (touches 2+ levels)
-        </div>
+  <div class="section-title">Overlay</div>
+  <div class="overlay-buttons">
+    <button class="overlay-btn active" data-overlay="steepness">Steepness (gradient)</button>
+    <button class="overlay-btn" data-overlay="reachability">Reachability map</button>
+    <button class="overlay-btn" data-overlay="none">None</button>
+  </div>
+
+  <div class="section-title">Terrain Brush</div>
+  <div class="brush-buttons">
+    <button class="brush-btn active" data-mode="raise">&#9650; Raise</button>
+    <button class="brush-btn" data-mode="lower">&#9660; Lower</button>
+    <button class="brush-btn" data-mode="level">&#8213; Level</button>
+  </div>
+  <div class="slider-group">
+    <input type="range" id="brush-size" min="3" max="50" step="1" value="15">
+    <div id="brush-size-label">15 units</div>
+  </div>
+
+  <div class="section-title">Legend</div>
+  <div class="legend-section">
+    <div class="legend-row">
+      <div class="legend-dot" style="background:#4a90d9"></div>
+      <span>Infantry (r=10)</span>
     </div>
-
-    <div class="controls">
-        <button id="btn-new-terrain">New Random Terrain</button>
+    <div class="legend-row">
+      <div class="legend-dot" style="background:#c8a040"></div>
+      <span>Cavalry (r=15)</span>
     </div>
+    <div class="legend-row">
+      <div class="legend-dot" style="background:#d94a4a"></div>
+      <span>Artillery (r=20)</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-dot" style="background:#e06060"></div>
+      <span>Red = blocked (&gt;1 isoline crossed)</span>
+    </div>
+    <div class="legend-divider"></div>
+    <div style="font-size:0.68rem;color:#a08060;margin-bottom:2px;">Reachability overlay:</div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:rgba(40,150,40,0.5)"></div>
+      <span>All units pass</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:rgba(150,150,20,0.5)"></div>
+      <span>Infantry + Cavalry</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:rgba(160,80,20,0.5)"></div>
+      <span>Infantry only</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-swatch" style="background:rgba(160,20,20,0.5)"></div>
+      <span>None pass</span>
+    </div>
+  </div>
 
-    <p class="footnote">
-        Rule: count distinct elevation levels whose isoline is within radius r
-        of the ball centre. Pass if that count ≤ 1.
-    </p>
+  <div class="controls">
+    <button id="btn-new-terrain">New Random Terrain</button>
+  </div>
+
+  <p class="footnote">Rule: count distinct elevation levels whose isoline is within radius r of the ball centre. Pass if count &le; 1.</p>
 </div>
-
 <div id="canvas-container">
-    <canvas id="main-canvas"></canvas>
+  <canvas id="main-canvas"></canvas>
 </div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────────────────────
-
+// ── Constants ──────────────────────────────────────────────────────────────────
 const TW = 200, TH = 200;
-const ISO_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const ISO_LEVELS = [1,2,3,4,5,6,7,8,9];
+const UNIT_ORDER = ['artillery','cavalry','infantry'];
+const BASE_RADII = { infantry:10, cavalry:15, artillery:20 };
+const UNIT_COLORS = { infantry:'#4a90d9', cavalry:'#c8a040', artillery:'#d94a4a' };
 
-const UNIT_ORDER  = ['artillery', 'cavalry', 'infantry']; // draw outside-in
-const BASE_RADII  = { infantry: 10, cavalry: 15, artillery: 20 };
-const UNIT_COLORS = { infantry: '#4a90d9', cavalry: '#c8a040', artillery: '#d94a4a' };
-
-// ── State ─────────────────────────────────────────────────────────────────────
-
-let terrain     = null;
-let gradMap     = null;
-let isoSegments = {};   // level → [{ax,ay,bx,by}]
-let sizeScale   = 1.0;
-let mouseWorld  = null;
+// ── State ──────────────────────────────────────────────────────────────────────
+let terrain, gradMap, isoSegments;
+let sizeScale = 1.0;
+let mouseWorld = null;
 let overlayMode = 'steepness';
-let terrainImage = null;
+let offCanvas = null;
 let seed = Math.floor(Math.random() * 999999);
+let brushMode = 'raise';
+let brushSize = 15;
+let isPainting = false;
+let levelTarget = 5.0;
 
-function scaledRadius(type) { return BASE_RADII[type] * sizeScale; }
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d');
 
-// ── Seeded RNG ────────────────────────────────────────────────────────────────
-
+// ── RNG (Mulberry32) ───────────────────────────────────────────────────────────
 function makeRng(s) {
-    s = s >>> 0;
-    return () => {
-        s = Math.imul(s ^ (s >>> 15), s | 1);
-        s ^= s + Math.imul(s ^ (s >>> 7), s | 61);
-        return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
-    };
+  let state = s >>> 0;
+  return function() {
+    state += 0x6D2B79F5;
+    let z = state;
+    z = Math.imul(z ^ (z >>> 15), z | 1);
+    z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-// ── Terrain generation ────────────────────────────────────────────────────────
+// ── Terrain generation ─────────────────────────────────────────────────────────
+function smoothstep(t) { return t * t * (3 - 2 * t); }
 
 function addNoiseLayer(data, W, H, gridSize, amp, rng) {
-    const gW = Math.ceil(W / gridSize) + 1;
-    const gH = Math.ceil(H / gridSize) + 1;
-    const grid = Array.from({ length: gW * gH }, () => rng() * amp);
-    for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-            const gx = x / gridSize, gy = y / gridSize;
-            const x0 = Math.floor(gx), y0 = Math.floor(gy);
-            const fx = gx - x0, fy = gy - y0;
-            const sx = fx * fx * (3 - 2 * fx);
-            const sy = fy * fy * (3 - 2 * fy);
-            const v00 = grid[ y0      * gW +  x0     ] || 0;
-            const v10 = grid[ y0      * gW + (x0 + 1)] || 0;
-            const v01 = grid[(y0 + 1) * gW +  x0     ] || 0;
-            const v11 = grid[(y0 + 1) * gW + (x0 + 1)] || 0;
-            data[y * W + x] += (v00 + sx * (v10 - v00)) + sy * ((v01 + sx * (v11 - v01)) - (v00 + sx * (v10 - v00)));
-        }
+  const gw = Math.ceil(W / gridSize) + 2;
+  const gh = Math.ceil(H / gridSize) + 2;
+  const grid = new Float32Array(gw * gh);
+  for (let i = 0; i < grid.length; i++) grid[i] = rng();
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const gx = x / gridSize;
+      const gy = y / gridSize;
+      const ix = Math.floor(gx);
+      const iy = Math.floor(gy);
+      const fx = gx - ix;
+      const fy = gy - iy;
+      const tx = smoothstep(fx);
+      const ty = smoothstep(fy);
+      const i00 = grid[iy * gw + ix];
+      const i10 = grid[iy * gw + (ix + 1)];
+      const i01 = grid[(iy + 1) * gw + ix];
+      const i11 = grid[(iy + 1) * gw + (ix + 1)];
+      const v = (i00 * (1 - tx) + i10 * tx) * (1 - ty) + (i01 * (1 - tx) + i11 * tx) * ty;
+      data[y * W + x] += v * amp;
     }
+  }
 }
 
-function generateTerrain(seed) {
-    const rng  = makeRng(seed);
-    const data = new Float32Array(TW * TH);
-    addNoiseLayer(data, TW, TH, 80, 1.00, rng);
-    addNoiseLayer(data, TW, TH, 40, 0.50, rng);
-    addNoiseLayer(data, TW, TH, 20, 0.25, rng);
-    let lo = Infinity, hi = -Infinity;
-    for (let i = 0; i < data.length; i++) {
-        if (data[i] < lo) lo = data[i];
-        if (data[i] > hi) hi = data[i];
-    }
-    const r = (hi - lo) || 1;
-    for (let i = 0; i < data.length; i++) data[i] = ((data[i] - lo) / r) * 10;
-    return data;
+function generateTerrain(s) {
+  const W = TW, H = TH;
+  const data = new Float32Array(W * H);
+  const rng = makeRng(s);
+  addNoiseLayer(data, W, H, 80, 1.0, rng);
+  addNoiseLayer(data, W, H, 40, 0.5, rng);
+  addNoiseLayer(data, W, H, 20, 0.25, rng);
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] < mn) mn = data[i];
+    if (data[i] > mx) mx = data[i];
+  }
+  const range = mx - mn || 1;
+  for (let i = 0; i < data.length; i++) data[i] = (data[i] - mn) / range * 10;
+  return data;
 }
 
 function computeGradientMap(data) {
-    const grad = new Float32Array(TW * TH);
-    for (let y = 1; y < TH - 1; y++) {
-        for (let x = 1; x < TW - 1; x++) {
-            const dx = (data[y * TW + (x + 1)] - data[y * TW + (x - 1)]) * 0.5;
-            const dy = (data[(y + 1) * TW + x] - data[(y - 1) * TW + x]) * 0.5;
-            grad[y * TW + x] = Math.hypot(dx, dy);
-        }
+  const W = TW, H = TH;
+  const gmap = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let gx = 0, gy = 0;
+      if (x > 0 && x < W - 1) gx = (data[y * W + x + 1] - data[y * W + x - 1]) * 0.5;
+      if (y > 0 && y < H - 1) gy = (data[(y + 1) * W + x] - data[(y - 1) * W + x]) * 0.5;
+      gmap[y * W + x] = Math.sqrt(gx * gx + gy * gy);
     }
-    return grad;
+  }
+  return gmap;
 }
 
-// ── Marching-squares segment extraction ───────────────────────────────────────
-
+// ── Marching squares ───────────────────────────────────────────────────────────
 function buildIsolineSegments(data) {
-    const result = {};
-    for (const level of ISO_LEVELS) {
-        const segs = [];
-        const il = (a, b, va, vb) => a + (level - va) / (vb - va) * (b - a);
-        for (let y = 0; y < TH - 1; y++) {
-            for (let x = 0; x < TW - 1; x++) {
-                const v0 = data[ y      * TW +  x     ];
-                const v1 = data[ y      * TW + (x + 1)];
-                const v2 = data[(y + 1) * TW + (x + 1)];
-                const v3 = data[(y + 1) * TW +  x     ];
-                const code = (v0 >= level ? 8 : 0)
-                           | (v1 >= level ? 4 : 0)
-                           | (v2 >= level ? 2 : 0)
-                           | (v3 >= level ? 1 : 0);
-                if (code === 0 || code === 15) continue;
+  const W = TW, H = TH;
+  const result = {};
+  for (const lv of ISO_LEVELS) result[lv] = [];
 
-                const top    = { x: il(x, x+1, v0, v1), y };
-                const right  = { x: x+1, y: il(y, y+1, v1, v2) };
-                const bottom = { x: il(x, x+1, v3, v2), y: y+1 };
-                const left   = { x,      y: il(y, y+1, v0, v3) };
-                const push = (a, b) => segs.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y });
+  for (const lv of ISO_LEVELS) {
+    const segs = result[lv];
+    for (let y = 0; y < H - 1; y++) {
+      for (let x = 0; x < W - 1; x++) {
+        const v00 = data[y * W + x];
+        const v10 = data[y * W + x + 1];
+        const v01 = data[(y + 1) * W + x];
+        const v11 = data[(y + 1) * W + x + 1];
+        const c00 = v00 >= lv ? 1 : 0;
+        const c10 = v10 >= lv ? 1 : 0;
+        const c01 = v01 >= lv ? 1 : 0;
+        const c11 = v11 >= lv ? 1 : 0;
+        const idx = c00 | (c10 << 1) | (c11 << 2) | (c01 << 3);
+        if (idx === 0 || idx === 15) continue;
 
-                switch (code) {
-                    case  1: push(left, bottom);              break;
-                    case  2: push(bottom, right);             break;
-                    case  3: push(left, right);               break;
-                    case  4: push(top, right);                break;
-                    case  5: push(left, top); push(bottom, right); break;
-                    case  6: push(top, bottom);               break;
-                    case  7: push(left, top);                 break;
-                    case  8: push(top, left);                 break;
-                    case  9: push(top, bottom);               break;
-                    case 10: push(top, right); push(left, bottom); break;
-                    case 11: push(top, right);                break;
-                    case 12: push(left, right);               break;
-                    case 13: push(bottom, right);             break;
-                    case 14: push(left, bottom);              break;
-                }
-            }
+        function lerp(va, vb) {
+          const d = vb - va;
+          if (Math.abs(d) < 1e-10) return 0.5;
+          return Math.max(0, Math.min(1, (lv - va) / d));
         }
-        result[level] = segs;
+        const top   = { x: x + lerp(v00, v10), y: y };
+        const right = { x: x + 1,              y: y + lerp(v10, v11) };
+        const bot   = { x: x + lerp(v01, v11), y: y + 1 };
+        const left  = { x: x,                  y: y + lerp(v00, v01) };
+
+        const cases = {
+          1:  [[left, top]],
+          2:  [[top, right]],
+          3:  [[left, right]],
+          4:  [[right, bot]],
+          5:  [[left, top], [right, bot]],
+          6:  [[top, bot]],
+          7:  [[left, bot]],
+          8:  [[bot, left]],
+          9:  [[top, bot]],
+          10: [[top, left], [bot, right]],
+          11: [[top, right]],
+          12: [[right, left]],
+          13: [[right, top]],
+          14: [[bot, left]],
+        };
+        const lines = cases[idx];
+        if (!lines) continue;
+        for (const [a, b] of lines) {
+          segs.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y });
+        }
+      }
     }
-    return result;
+  }
+  return result;
 }
 
-// ── Core traversal rule ───────────────────────────────────────────────────────
-
+// ── Distance helpers (all checks in canvas pixel space) ───────────────────────
 function pointSegDist(px, py, ax, ay, bx, by) {
-    const dx = bx - ax, dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq < 1e-12) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-/**
- * Returns the set of isoline levels whose segments are within radius r
- * of world position (wx, wy). Each level is counted at most once
- * (all segments of a level are "one line").
- */
-function touchedLevels(wx, wy, r) {
-    const touched = [];
-    for (const level of ISO_LEVELS) {
-        for (const { ax, ay, bx, by } of isoSegments[level]) {
-            if (pointSegDist(wx, wy, ax, ay, bx, by) <= r) {
-                touched.push(level);
-                break; // this level is hit; don't count it again
-            }
-        }
+function touchedLevels(cx, cy, rPx, scaleX, scaleY) {
+  const touched = [];
+  for (const lv of ISO_LEVELS) {
+    const segs = isoSegments[lv];
+    for (const s of segs) {
+      const sax = s.ax * scaleX, say = s.ay * scaleY;
+      const sbx = s.bx * scaleX, sby = s.by * scaleY;
+      if (pointSegDist(cx, cy, sax, say, sbx, sby) <= rPx) {
+        touched.push(lv);
+        break;
+      }
     }
-    return touched;
+  }
+  return touched;
 }
 
-/**
- * Returns the closest point on any isoline segment (across all levels) to
- * world position (wx, wy), plus its distance and elevation level.
- */
-function nearestIsolinePoint(wx, wy) {
-    let best = null;
-    for (const level of ISO_LEVELS) {
-        for (const { ax, ay, bx, by } of isoSegments[level]) {
-            const dx = bx - ax, dy = by - ay;
-            const lenSq = dx * dx + dy * dy;
-            const t = lenSq > 0
-                ? Math.max(0, Math.min(1, ((wx - ax) * dx + (wy - ay) * dy) / lenSq))
-                : 0;
-            const px = ax + t * dx, py = ay + t * dy;
-            const dist = Math.hypot(wx - px, wy - py);
-            if (!best || dist < best.dist) best = { x: px, y: py, dist, level };
-        }
+function nearestIsolinePoint(cx, cy, scaleX, scaleY) {
+  let best = null;
+  for (const lv of ISO_LEVELS) {
+    const segs = isoSegments[lv];
+    for (const s of segs) {
+      const sax = s.ax * scaleX, say = s.ay * scaleY;
+      const sbx = s.bx * scaleX, sby = s.by * scaleY;
+      const dx = sbx - sax, dy = sby - say;
+      const lenSq = dx * dx + dy * dy;
+      let nx, ny;
+      if (lenSq < 1e-12) { nx = sax; ny = say; }
+      else {
+        const t = Math.max(0, Math.min(1, ((cx - sax) * dx + (cy - say) * dy) / lenSq));
+        nx = sax + t * dx;
+        ny = say + t * dy;
+      }
+      const dist = Math.hypot(cx - nx, cy - ny);
+      if (!best || dist < best.dist) best = { x: nx, y: ny, dist, level: lv };
     }
-    return best; // { x, y, dist, level } in world coords
+  }
+  return best;
 }
 
-// ── Canvas & coordinate helpers ───────────────────────────────────────────────
-
-const canvas = document.getElementById('main-canvas');
-const ctx    = canvas.getContext('2d');
-
-function toCanvas(wx, wy) {
-    return { x: wx * canvas.width / TW, y: wy * canvas.height / TH };
-}
-
+// ── Coordinate helpers ─────────────────────────────────────────────────────────
 function toWorld(cx, cy) {
-    return { x: cx * TW / canvas.width, y: cy * TH / canvas.height };
+  return { x: cx * TW / canvas.width, y: cy * TH / canvas.height };
 }
-
+function toCanvas(wx, wy) {
+  return { x: wx * canvas.width / TW, y: wy * canvas.height / TH };
+}
 function sampleE(wx, wy) {
-    const x = Math.max(0, Math.min(TW - 1, Math.round(wx)));
-    const y = Math.max(0, Math.min(TH - 1, Math.round(wy)));
-    return terrain[y * TW + x];
+  const xi = Math.max(0, Math.min(TW - 1, Math.round(wx)));
+  const yi = Math.max(0, Math.min(TH - 1, Math.round(wy)));
+  return terrain[yi * TW + xi];
 }
+function scaledRadius(type) { return BASE_RADII[type] * sizeScale; }
 
-// ── Terrain background image ──────────────────────────────────────────────────
-
+// ── Terrain image (synchronous) ────────────────────────────────────────────────
 function buildTerrainImage() {
-    const W = canvas.width, H = canvas.height;
-    const img = ctx.createImageData(W, H);
-    const d   = img.data;
-    const sx  = TW / W, sy = TH / H;
+  const W = canvas.width, H = canvas.height;
+  if (!offCanvas || offCanvas.width !== W || offCanvas.height !== H) {
+    offCanvas = document.createElement('canvas');
+    offCanvas.width = W;
+    offCanvas.height = H;
+  }
+  const octx = offCanvas.getContext('2d');
+  const img = octx.createImageData(W, H);
+  const d = img.data;
 
-    let maxGrad = 0;
-    for (let i = 0; i < gradMap.length; i++) if (gradMap[i] > maxGrad) maxGrad = gradMap[i];
+  const artR = scaledRadius('artillery');
+  const cavR = scaledRadius('cavalry');
+  const infR = scaledRadius('infantry');
 
-    for (let py = 0; py < H; py++) {
-        for (let px = 0; px < W; px++) {
-            const gxi = Math.max(0, Math.min(TW - 1, Math.round(px * sx)));
-            const gyi = Math.max(0, Math.min(TH - 1, Math.round(py * sy)));
-            const e   = terrain[gyi * TW + gxi];
-            const g   = gradMap [gyi * TW + gxi];
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      const wx = px * TW / W;
+      const wy = py * TH / H;
+      const xi = Math.max(0, Math.min(TW - 1, Math.floor(wx)));
+      const yi = Math.max(0, Math.min(TH - 1, Math.floor(wy)));
+      const e = terrain[yi * TW + xi];
+      const g = gradMap[yi * TW + xi];
+      const t = e / 10;
 
-            // Parchment base: low=light tan, high=dark brown
-            let r = 210 - e * 8;
-            let gr = 185 - e * 9;
-            let b = 140 - e * 8;
+      // Base parchment elevation color: low=light tan, high=dark brown
+      const r0 = Math.round(244 - t * 130);
+      const g0 = Math.round(228 - t * 120);
+      const b0 = Math.round(188 - t * 130);
+      let r = r0, gv = g0, b = b0;
 
-            if (overlayMode === 'steepness') {
-                const steep = Math.min(1, g / 0.35);
-                r  = r  + (160 - r)  * steep * 0.40;
-                gr = gr + (30  - gr) * steep * 0.40;
-                b  = b  + (10  - b)  * steep * 0.40;
-            }
-
-            const idx = (py * W + px) * 4;
-            d[idx]     = Math.round(r);
-            d[idx + 1] = Math.round(gr);
-            d[idx + 2] = Math.round(b);
-            d[idx + 3] = 255;
+      if (overlayMode === 'steepness') {
+        const steep = Math.min(1, g * 2.5);
+        r = Math.round(r0 + (220 - r0) * steep * 0.7);
+        gv = Math.round(g0 * (1 - steep * 0.6));
+        b = Math.round(b0 * (1 - steep * 0.7));
+      } else if (overlayMode === 'reachability') {
+        const gap = g < 0.001 ? Infinity : 1 / g;
+        let or, og, ob;
+        if (gap >= 2 * artR) {
+          or = 40; og = 150; ob = 40;
+        } else if (gap >= 2 * cavR) {
+          or = 150; og = 150; ob = 20;
+        } else if (gap >= 2 * infR) {
+          or = 160; og = 80; ob = 20;
+        } else {
+          or = 160; og = 20; ob = 20;
         }
-    }
+        const alf = 0.28;
+        r = Math.round(r0 * (1 - alf) + or * alf);
+        gv = Math.round(g0 * (1 - alf) + og * alf);
+        b = Math.round(b0 * (1 - alf) + ob * alf);
+      }
 
-    const off = document.createElement('canvas');
-    off.width = W; off.height = H;
-    off.getContext('2d').putImageData(img, 0, 0);
-    return createImageBitmap(off).then(bmp => { terrainImage = bmp; });
+      const idx = (py * W + px) * 4;
+      d[idx]     = Math.max(0, Math.min(255, r));
+      d[idx + 1] = Math.max(0, Math.min(255, gv));
+      d[idx + 2] = Math.max(0, Math.min(255, b));
+      d[idx + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
 }
 
-// ── Draw ──────────────────────────────────────────────────────────────────────
+// ── Brush ──────────────────────────────────────────────────────────────────────
+function applyBrush(wx, wy) {
+  const radius = brushSize / 2;
+  const x0 = Math.max(0, Math.floor(wx - radius));
+  const x1 = Math.min(TW - 1, Math.ceil(wx + radius));
+  const y0 = Math.max(0, Math.floor(wy - radius));
+  const y1 = Math.min(TH - 1, Math.ceil(wy + radius));
+  for (let cy = y0; cy <= y1; cy++) {
+    for (let cx = x0; cx <= x1; cx++) {
+      const dist = Math.hypot(cx - wx, cy - wy);
+      if (dist > radius) continue;
+      const t = dist / radius;
+      const falloff = (1 - t) * (1 - t);
+      const i = cy * TW + cx;
+      if (brushMode === 'raise') {
+        terrain[i] = Math.max(0, Math.min(10, terrain[i] + 0.10 * falloff));
+      } else if (brushMode === 'lower') {
+        terrain[i] = Math.max(0, Math.min(10, terrain[i] - 0.10 * falloff));
+      } else {
+        terrain[i] += (levelTarget - terrain[i]) * 0.18 * falloff;
+      }
+    }
+  }
+  gradMap = computeGradientMap(terrain);
+  isoSegments = buildIsolineSegments(terrain);
+  buildTerrainImage();
+}
 
+// ── Draw frame ─────────────────────────────────────────────────────────────────
 function drawFrame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (terrainImage) ctx.drawImage(terrainImage, 0, 0);
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
 
-    const scaleX = canvas.width  / TW;
-    const scaleY = canvas.height / TH;
-    const dispScale = Math.min(scaleX, scaleY); // keep balls circular
+  // 1. Terrain background
+  if (offCanvas) ctx.drawImage(offCanvas, 0, 0);
 
-    // ── All isolines (dim background lines) ──────────────────────────────────
+  // 2. All isolines as dim vector lines
+  const scaleX = W / TW;
+  const scaleY = H / TH;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(80,50,18,0.55)';
+  ctx.lineWidth = 1;
+  for (const lv of ISO_LEVELS) {
+    ctx.beginPath();
+    for (const s of isoSegments[lv]) {
+      ctx.moveTo(s.ax * scaleX, s.ay * scaleY);
+      ctx.lineTo(s.bx * scaleX, s.by * scaleY);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 3. Early-return if no mouseWorld
+  if (!mouseWorld) return;
+
+  // 4. Scale factors
+  const dispScale = Math.min(scaleX, scaleY);
+  const cp = toCanvas(mouseWorld.x, mouseWorld.y);
+  const cx = cp.x, cy = cp.y;
+
+  // 5. Compute unit results
+  const unitResults = {};
+  for (const type of UNIT_ORDER) {
+    const r = scaledRadius(type);
+    const rPx = r * dispScale;
+    const touched = touchedLevels(cx, cy, rPx, scaleX, scaleY);
+    const pass = touched.length <= 1;
+    unitResults[type] = { r, rPx, touched, pass };
+  }
+
+  // 6. All touched using artillery rPx
+  const artRPx = unitResults['artillery'].rPx;
+  const allTouched = unitResults['artillery'].touched;
+  const blocksCount = allTouched.length;
+
+  // 7. Highlight touched isoline segments
+  if (allTouched.length > 0) {
+    const brightness = Math.min(1, 0.4 + blocksCount * 0.15);
     ctx.save();
-    for (const level of ISO_LEVELS) {
-        ctx.strokeStyle = 'rgba(80, 50, 18, 0.55)';
-        ctx.lineWidth   = 1;
-        ctx.beginPath();
-        for (const { ax, ay, bx, by } of isoSegments[level]) {
-            ctx.moveTo(ax * scaleX, ay * scaleY);
-            ctx.lineTo(bx * scaleX, by * scaleY);
+    ctx.strokeStyle = `rgba(220,160,20,${brightness})`;
+    ctx.lineWidth = 2;
+    for (const lv of allTouched) {
+      ctx.beginPath();
+      for (const s of isoSegments[lv]) {
+        const sax = s.ax * scaleX, say = s.ay * scaleY;
+        const sbx = s.bx * scaleX, sby = s.by * scaleY;
+        if (pointSegDist(cx, cy, sax, say, sbx, sby) <= artRPx) {
+          ctx.moveTo(sax, say);
+          ctx.lineTo(sbx, sby);
         }
-        ctx.stroke();
+      }
+      ctx.stroke();
     }
     ctx.restore();
+  }
 
-    if (!mouseWorld) return;
+  // 8. Draw annuli fills
+  const artR_px = unitResults['artillery'].rPx;
+  const cavR_px = unitResults['cavalry'].rPx;
+  const infR_px = unitResults['infantry'].rPx;
 
-    const { x: wx, y: wy } = mouseWorld;
-    const { x: cx, y: cy } = toCanvas(wx, wy);
-
-    // ── Compute touched levels and pass/fail per unit ─────────────────────────
-    const unitResults = {};
-    // Union of all levels touched by any unit (use artillery as the outer bound)
-    const artRadius   = scaledRadius('artillery');
-    const allTouched  = new Set(touchedLevels(wx, wy, artRadius));
-
-    for (const type of UNIT_ORDER) {
-        const r       = scaledRadius(type);
-        const touched = touchedLevels(wx, wy, r);
-        unitResults[type] = {
-            r,
-            touched,
-            pass: touched.length <= 1,
-        };
-    }
-
-    // ── Highlight touched isoline levels ─────────────────────────────────────
-    // Highlight only segments actually within artillery radius (closest approach
-    // to the ball surface), coloured by how many units are blocked by that level.
-    if (allTouched.size > 0) {
-        for (const level of allTouched) {
-            // Count how many unit types have this level in their touched set
-            const blocksCount = UNIT_ORDER.filter(t =>
-                unitResults[t].touched.includes(level)
-            ).length;
-
-            // More units affected → warmer/brighter highlight
-            const alpha = 0.55 + blocksCount * 0.12;
-            ctx.save();
-            ctx.strokeStyle = `rgba(220, 120, 30, ${alpha})`;
-            ctx.lineWidth   = 2.5;
-            ctx.beginPath();
-            for (const { ax, ay, bx, by } of isoSegments[level]) {
-                if (pointSegDist(wx, wy, ax, ay, bx, by) <= artRadius) {
-                    ctx.moveTo(ax * scaleX, ay * scaleY);
-                    ctx.lineTo(bx * scaleX, by * scaleY);
-                }
-            }
-            ctx.stroke();
-            ctx.restore();
-        }
-    }
-
-    // ── Stacked circles: each unit gets its own annular region ──────────────
-    // Artillery owns the ring from cavalry-radius to artillery-radius.
-    // Cavalry owns the ring from infantry-radius to cavalry-radius.
-    // Infantry owns the central disk.
-    // Non-overlapping fills eliminate color bleeding between units.
-
-    const artRPx = unitResults.artillery.r * dispScale;
-    const cavRPx = unitResults.cavalry.r   * dispScale;
-    const infRPx = unitResults.infantry.r  * dispScale;
-
-    const annuli = [
-        { type: 'artillery', outerR: artRPx, innerR: cavRPx },
-        { type: 'cavalry',   outerR: cavRPx, innerR: infRPx },
-        { type: 'infantry',  outerR: infRPx, innerR: 0 },
-    ];
-
-    for (const { type, outerR, innerR } of annuli) {
-        const { pass } = unitResults[type];
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
-        if (innerR > 0) ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true); // punch hole
-        ctx.fillStyle = (pass ? UNIT_COLORS[type] : '#dd3333') + '55';
-        ctx.fill();
-        ctx.restore();
-    }
-
-    // Ring outlines drawn last so they sit on top of fills
-    for (const type of UNIT_ORDER) {
-        const { r, pass } = unitResults[type];
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, r * dispScale, 0, Math.PI * 2);
-        ctx.strokeStyle = pass ? UNIT_COLORS[type] : '#ee4444';
-        ctx.lineWidth   = pass ? 2 : 2.5;
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    // ── Line to nearest isoline ──────────────────────────────────────────────
-    const nearest = nearestIsolinePoint(wx, wy);
-    if (nearest) {
-        const { x: nx, y: ny } = toCanvas(nearest.x, nearest.y);
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.lineWidth   = 1.5;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // Dot at the nearest point on the isoline
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.beginPath();
-        ctx.arc(nx, ny, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-
-    // ── Crosshair at ball centre ──────────────────────────────────────────────
+  function drawAnnulus(outerR, innerR, r, g, bv, alpha) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 1;
+    ctx.fillStyle = `rgba(${r},${g},${bv},${alpha})`;
     ctx.beginPath();
-    ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
-    ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2, false);
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Artillery annulus: cavRPx to artRPx
+  drawAnnulus(artR_px, cavR_px, 217, 74, 74, unitResults['artillery'].pass ? 0.18 : 0.32);
+  // Cavalry annulus: infRPx to cavRPx
+  drawAnnulus(cavR_px, infR_px, 200, 160, 64, unitResults['cavalry'].pass ? 0.18 : 0.32);
+  // Infantry: 0 to infRPx
+  ctx.save();
+  ctx.fillStyle = unitResults['infantry'].pass ? 'rgba(74,144,217,0.18)' : 'rgba(74,144,217,0.32)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, infR_px, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 9. Ring outlines on top
+  for (const type of UNIT_ORDER) {
+    const { rPx, pass } = unitResults[type];
+    ctx.save();
+    ctx.strokeStyle = pass ? UNIT_COLORS[type] : '#e06060';
+    ctx.lineWidth = pass ? 1.5 : 2;
+    if (!pass) ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
+  }
 
-    // ── Tooltip ───────────────────────────────────────────────────────────────
-    const e       = sampleE(wx, wy);
-    const maxRPx  = artRadius * dispScale;
-    const labelX  = cx + maxRPx + 8;
-    const labelY  = cy - 4;
-
+  // 10. Line to nearest isoline
+  const nearest = nearestIsolinePoint(cx, cy, scaleX, scaleY);
+  if (nearest) {
     ctx.save();
-    ctx.font = '11px Georgia';
-
-    // Background box for readability
-    const lines = [`elev ${e.toFixed(1)}`];
-    for (const type of ['infantry','cavalry','artillery']) {
-        const { touched, pass } = unitResults[type];
-        lines.push(`${type[0].toUpperCase()}${type.slice(1,3)} r=${unitResults[type].r.toFixed(0)} · ${touched.length} line${touched.length !== 1 ? 's' : ''} · ${pass ? 'pass' : 'block'}`);
-    }
-
-    const lineH = 13, pad = 5;
-    const boxW  = 170, boxH = lines.length * lineH + pad * 2;
-    let bx = labelX, by = labelY - lineH;
-    if (bx + boxW > canvas.width  - 4) bx = cx - boxW - maxRPx - 8;
-    if (by + boxH > canvas.height - 4) by = canvas.height - boxH - 4;
-
-    ctx.fillStyle = 'rgba(30, 18, 8, 0.78)';
-    ctx.fillRect(bx, by, boxW, boxH);
-    ctx.strokeStyle = 'rgba(90,60,20,0.6)';
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(bx, by, boxW, boxH);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(nearest.x, nearest.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(nearest.x, nearest.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
-    for (let i = 0; i < lines.length; i++) {
-        ctx.fillStyle = i === 0 ? '#d4a574' : '#f4e4bc';
-        ctx.fillText(lines[i], bx + pad, by + pad + lineH * (i + 0.75));
+  // 11. Brush circle
+  {
+    const brushRPx = (brushSize / 2) * dispScale;
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = 'rgba(255,240,180,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, brushRPx, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 12. Crosshair
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,240,180,0.8)';
+  ctx.lineWidth = 1;
+  const ch = 8;
+  ctx.beginPath();
+  ctx.moveTo(cx - ch, cy); ctx.lineTo(cx + ch, cy);
+  ctx.moveTo(cx, cy - ch); ctx.lineTo(cx, cy + ch);
+  ctx.stroke();
+  ctx.restore();
+
+  // 13. Tooltip box
+  {
+    const e = sampleE(mouseWorld.x, mouseWorld.y);
+    const fontSize = 11;
+    ctx.save();
+    ctx.font = `${fontSize}px Georgia`;
+    const tooltipLines = [
+      { text: `Elev: ${e.toFixed(2)}`, color: '#d4a574' },
+      ...['infantry','cavalry','artillery'].map(tp => {
+        const { r, touched, pass } = unitResults[tp];
+        return {
+          text: `${tp[0].toUpperCase()}${tp.slice(1)}: r=${r.toFixed(1)} | ${touched.length} line${touched.length !== 1 ? 's' : ''} | ${pass ? 'PASS' : 'BLOCK'}`,
+          color: pass ? '#80c080' : '#e06060'
+        };
+      })
+    ];
+    const maxW = Math.max(...tooltipLines.map(l => ctx.measureText(l.text).width));
+    const bw = maxW + 16;
+    const lineH = fontSize + 4;
+    const bh = tooltipLines.length * lineH + 10;
+    let bx = cx + 15, by = cy - bh - 5;
+    if (bx + bw > W - 5) bx = cx - bw - 15;
+    if (by < 5) by = cy + 10;
+    ctx.fillStyle = 'rgba(20,14,8,0.82)';
+    ctx.strokeStyle = '#5a4630';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(bx, by, bw, bh);
+    ctx.fill();
+    ctx.stroke();
+    let ty = by + fontSize + 4;
+    for (const line of tooltipLines) {
+      ctx.fillStyle = line.color;
+      ctx.fillText(line.text, bx + 8, ty);
+      ty += lineH;
     }
     ctx.restore();
+  }
 
+  // 14. Update sidebar
+  {
+    const e = sampleE(mouseWorld.x, mouseWorld.y);
     updateSidebar(unitResults, e);
+  }
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-
-function updateSizeLabel() {
-    const ri = (BASE_RADII.infantry  * sizeScale).toFixed(1);
-    const rc = (BASE_RADII.cavalry   * sizeScale).toFixed(1);
-    const ra = (BASE_RADII.artillery * sizeScale).toFixed(1);
-    document.getElementById('size-label').innerHTML =
-        `<span>${sizeScale.toFixed(2)}×</span> &nbsp;·&nbsp; r = ${ri} / ${rc} / ${ra}`;
-    // Also update status row labels
-    document.getElementById('label-infantry').textContent  = `Infantry  r=${ri}`;
-    document.getElementById('label-cavalry').textContent   = `Cavalry  r=${rc}`;
-    document.getElementById('label-artillery').textContent = `Artillery  r=${ra}`;
-}
-
+// ── Sidebar update ─────────────────────────────────────────────────────────────
 function updateSidebar(unitResults, e) {
-    document.getElementById('elev-info').innerHTML =
-        `Elevation: <span>${e.toFixed(2)}</span>`;
-
-    for (const type of ['infantry', 'cavalry', 'artillery']) {
-        const { touched, pass } = unitResults[type];
-        const sv = document.getElementById(`status-${type}`);
-        const sl = document.getElementById(`lines-${type}`);
-        sv.textContent = pass ? 'PASS' : 'BLOCK';
-        sv.className   = `status-value ${pass ? 'sv-pass' : 'sv-block'}`;
-        sl.textContent = `${touched.length} line${touched.length !== 1 ? 's' : ''}`;
-    }
+  document.getElementById('elev-info').textContent = `Elevation: ${e.toFixed(2)} / 10`;
+  for (const type of ['infantry','cavalry','artillery']) {
+    const { touched, pass } = unitResults[type];
+    const dot = document.getElementById(`dot-${type}`);
+    const lc = document.getElementById(`lines-${type}`);
+    const pb = document.getElementById(`pb-${type}`);
+    dot.style.background = pass ? UNIT_COLORS[type] : '#e06060';
+    lc.textContent = `${touched.length} line${touched.length !== 1 ? 's' : ''}`;
+    pb.textContent = pass ? 'PASS' : 'BLOCK';
+    pb.className = 'pass-block ' + (pass ? 'pass' : 'block');
+  }
 }
 
 function clearSidebar() {
-    document.getElementById('elev-info').textContent = 'Move cursor over the terrain';
-    for (const type of ['infantry', 'cavalry', 'artillery']) {
-        document.getElementById(`status-${type}`).textContent = '—';
-        document.getElementById(`status-${type}`).className   = 'status-value sv-dash';
-        document.getElementById(`lines-${type}`).textContent  = '';
-    }
+  document.getElementById('elev-info').textContent = 'Move cursor over terrain';
+  for (const type of ['infantry','cavalry','artillery']) {
+    document.getElementById(`dot-${type}`).style.background = UNIT_COLORS[type];
+    document.getElementById(`lines-${type}`).textContent = '\u2014';
+    const pb = document.getElementById(`pb-${type}`);
+    pb.textContent = '\u2014';
+    pb.className = 'pass-block';
+  }
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
-
-canvas.addEventListener('mousemove', e => {
-    const r = canvas.getBoundingClientRect();
-    mouseWorld = toWorld(e.clientX - r.left, e.clientY - r.top);
-    drawFrame();
-});
-
-canvas.addEventListener('mouseleave', () => {
-    mouseWorld = null;
-    drawFrame();
-    clearSidebar();
-});
-
-document.getElementById('size-slider').addEventListener('input', function () {
-    sizeScale = parseFloat(this.value);
-    updateSizeLabel();
-    if (mouseWorld) drawFrame();
-});
-
-document.querySelectorAll('.overlay-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.overlay-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        overlayMode = btn.dataset.overlay;
-        rebuildAndDraw();
-    });
-});
-
-document.getElementById('btn-new-terrain').addEventListener('click', () => {
-    seed = Math.floor(Math.random() * 999999);
-    init();
-});
-
-window.addEventListener('resize', () => { resizeCanvas(); rebuildAndDraw(); });
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-
+// ── Init / resize ──────────────────────────────────────────────────────────────
 function resizeCanvas() {
-    const c = document.getElementById('canvas-container');
-    canvas.width  = c.clientWidth;
-    canvas.height = c.clientHeight;
+  const container = document.getElementById('canvas-container');
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
 }
 
 function rebuildAndDraw() {
-    buildTerrainImage().then(() => drawFrame());
+  buildTerrainImage();
+  drawFrame();
 }
 
 function init() {
-    terrain     = generateTerrain(seed);
-    gradMap     = computeGradientMap(terrain);
-    isoSegments = buildIsolineSegments(terrain);
-    resizeCanvas();
-    rebuildAndDraw();
+  terrain = generateTerrain(seed);
+  gradMap = computeGradientMap(terrain);
+  isoSegments = buildIsolineSegments(terrain);
+  resizeCanvas();
+  offCanvas = null;
+  rebuildAndDraw();
 }
 
+// ── Event handlers ─────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown', e => {
+  isPainting = true;
+  const rect = canvas.getBoundingClientRect();
+  mouseWorld = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+  if (brushMode === 'level') levelTarget = sampleE(mouseWorld.x, mouseWorld.y);
+  applyBrush(mouseWorld.x, mouseWorld.y);
+  drawFrame();
+});
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseWorld = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+  if (isPainting) applyBrush(mouseWorld.x, mouseWorld.y);
+  drawFrame();
+});
+
+canvas.addEventListener('mouseup', () => { isPainting = false; });
+
+canvas.addEventListener('mouseleave', () => {
+  isPainting = false;
+  mouseWorld = null;
+  drawFrame();
+  clearSidebar();
+});
+
+document.getElementById('size-slider').addEventListener('input', function() {
+  sizeScale = parseFloat(this.value);
+  document.getElementById('size-label').textContent = `Scale: ${sizeScale.toFixed(2)}\u00d7`;
+  if (overlayMode === 'reachability') buildTerrainImage();
+  drawFrame();
+});
+
+document.getElementById('brush-size').addEventListener('input', function() {
+  brushSize = parseInt(this.value);
+  document.getElementById('brush-size-label').textContent = `${brushSize} units`;
+});
+
+document.querySelectorAll('.overlay-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.overlay-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    overlayMode = this.dataset.overlay;
+    offCanvas = null;
+    rebuildAndDraw();
+  });
+});
+
+document.querySelectorAll('.brush-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    brushMode = this.dataset.mode;
+  });
+});
+
+document.getElementById('btn-new-terrain').addEventListener('click', () => {
+  seed = Math.floor(Math.random() * 999999);
+  offCanvas = null;
+  init();
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  offCanvas = null;
+  rebuildAndDraw();
+});
+
+// ── Start ──────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
