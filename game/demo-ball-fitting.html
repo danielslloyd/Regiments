@@ -624,19 +624,78 @@ function drawFrame() {
   // 1. Terrain background
   if (offCanvas) ctx.drawImage(offCanvas, 0, 0);
 
-  // 2. All isolines as dim vector lines
+  // 2. All isolines — color-coded low→high (green→red→white) + elevation labels
   const scaleX = W / TW;
   const scaleY = H / TH;
+
+  // Map level 1–9 to a colour: 1=green, 5=red, 9=white
+  function isoColor(lv, alpha) {
+    const t = (lv - 1) / 8; // 0..1
+    let r, g, b;
+    if (t < 0.5) {
+      // green → red
+      const u = t / 0.5;
+      r = Math.round(u * 210);
+      g = Math.round(200 - u * 170);
+      b = 30;
+    } else {
+      // red → white
+      const u = (t - 0.5) / 0.5;
+      r = 210;
+      g = Math.round(40 + u * 215);
+      b = Math.round(40 + u * 215);
+    }
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  // Draw lines per level
   ctx.save();
-  ctx.strokeStyle = 'rgba(80,50,18,0.55)';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.2;
   for (const lv of ISO_LEVELS) {
+    ctx.strokeStyle = isoColor(lv, 0.70);
     ctx.beginPath();
     for (const s of isoSegments[lv]) {
       ctx.moveTo(s.ax * scaleX, s.ay * scaleY);
       ctx.lineTo(s.bx * scaleX, s.by * scaleY);
     }
     ctx.stroke();
+  }
+  ctx.restore();
+
+  // Draw elevation labels — one per ~200px of arc length, spaced away from edges
+  ctx.save();
+  ctx.font = 'bold 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const LABEL_SPACING = 200; // px between labels along a contour
+  const MARGIN = 12;         // px from canvas edge
+  for (const lv of ISO_LEVELS) {
+    const segs = isoSegments[lv];
+    if (segs.length === 0) continue;
+    const col = isoColor(lv, 1.0);
+    let accumulated = LABEL_SPACING * 0.4; // offset first label a bit
+    for (const s of segs) {
+      const px1 = s.ax * scaleX, py1 = s.ay * scaleY;
+      const px2 = s.bx * scaleX, py2 = s.by * scaleY;
+      const segLen = Math.hypot(px2 - px1, py2 - py1);
+      accumulated += segLen;
+      if (accumulated >= LABEL_SPACING) {
+        accumulated -= LABEL_SPACING;
+        const mx = (px1 + px2) / 2;
+        const my = (py1 + py2) / 2;
+        if (mx < MARGIN || mx > W - MARGIN || my < MARGIN || my > H - MARGIN) continue;
+        // Rotate label to match segment direction
+        const angle = Math.atan2(py2 - py1, px2 - px1);
+        ctx.save();
+        ctx.translate(mx, my);
+        ctx.rotate(Math.abs(angle) > Math.PI / 2 ? angle + Math.PI : angle);
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillText(lv, 1, 1);
+        ctx.fillStyle = col;
+        ctx.fillText(lv, 0, 0);
+        ctx.restore();
+      }
+    }
   }
   ctx.restore();
 
