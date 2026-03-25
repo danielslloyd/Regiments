@@ -207,6 +207,33 @@
     display: block;
     cursor: crosshair;
   }
+  .unit-icons {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+  }
+  .unit-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #2c2416;
+    border: 2px solid #5a4630;
+    color: #c8b080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .unit-icon:hover {
+    background: #3a2e1e;
+    border-color: #d4a574;
+  }
 </style>
 </head>
 <body>
@@ -271,6 +298,13 @@
     <div id="brush-size-label">15 units</div>
   </div>
 
+  <div class="section-title">Units — drag to map</div>
+  <div class="unit-icons">
+    <div class="unit-icon" data-type="infantry" title="Infantry">I</div>
+    <div class="unit-icon" data-type="cavalry" title="Cavalry">C</div>
+    <div class="unit-icon" data-type="artillery" title="Artillery">A</div>
+  </div>
+
   <div class="section-title">Legend</div>
   <div class="legend-section">
     <div class="legend-row">
@@ -331,6 +365,10 @@ function computeIsoLevels(interval) {
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let terrain, gradMap, isoSegments;
+let placedUnits  = [];   // [{type, x, y, order:null|{tx,ty,path}}]
+let draggingUnit = null; // {type} — being dragged from sidebar
+let dragPos      = null; // world {x,y} of cursor during sidebar drag
+let movingUnit   = null; // {index, targetWorld, path, lastEx, lastEy}
 let ISO_LEVELS = computeIsoLevels(1.0);
 let contourInterval = 1.0;
 let ratioScale = 2.0;
@@ -524,6 +562,173 @@ function nearestIsolinePoint(cx, cy, scaleX, scaleY) {
   return best;
 }
 
+// ── Reachability grids ─────────────────────────────────────────────────────────
+function buildReachGrid(type) {
+  const r = scaledRadius(type);   // world-unit radius
+  const rCeil = Math.ceil(r) + 1;
+  const touchCount = new Uint8Array(TW * TH);
+  for (const lv of ISO_LEVELS) {
+    const lvTouched = new Uint8Array(TW * TH);
+    for (const s of isoSegments[lv]) {
+      const x0 = Math.max(0, Math.floor(Math.min(s.ax, s.bx) - rCeil));
+      const x1 = Math.min(TW - 1, Math.ceil(Math.max(s.ax, s.bx) + rCeil));
+      const y0 = Math.max(0, Math.floor(Math.min(s.ay, s.by) - rCeil));
+      const y1 = Math.min(TH - 1, Math.ceil(Math.max(s.ay, s.by) + rCeil));
+      for (let gy = y0; gy <= y1; gy++) {
+        for (let gx = x0; gx <= x1; gx++) {
+          const idx = gy * TW + gx;
+          if (!lvTouched[idx] && pointSegDist(gx, gy, s.ax, s.ay, s.bx, s.by) <= r) {
+            lvTouched[idx] = 1;
+          }
+        }
+      }
+    }
+    for (let i = 0; i < TW * TH; i++) touchCount[i] += lvTouched[i];
+  }
+  const grid = new Uint8Array(TW * TH);
+  for (let i = 0; i < TW * TH; i++) grid[i] = touchCount[i] <= 1 ? 1 : 0;
+  return grid;
+}
+let reachGrids = {};
+function rebuildReachGrids() {
+  for (const type of UNIT_ORDER) reachGrids[type] = buildReachGrid(type);
+}
+
+// ── A* pathfinding ─────────────────────────────────────────────────────────────
+class MinHeap {
+  constructor() { this.data = []; }
+  push(item) {
+    this.data.push(item);
+    this._bubbleUp(this.data.length - 1);
+  }
+  pop() {
+    const top = this.data[0];
+    const last = this.data.pop();
+    if (this.data.length > 0) {
+      this.data[0] = last;
+      this._sinkDown(0);
+    }
+    return top;
+  }
+  get size() { return this.data.length; }
+  _bubbleUp(i) {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.data[p].f <= this.data[i].f) break;
+      [this.data[p], this.data[i]] = [this.data[i], this.data[p]];
+      i = p;
+    }
+  }
+  _sinkDown(i) {
+    const n = this.data.length;
+    while (true) {
+      let min = i;
+      const l = 2 * i + 1, r = 2 * i + 2;
+      if (l < n && this.data[l].f < this.data[min].f) min = l;
+      if (r < n && this.data[r].f < this.data[min].f) min = r;
+      if (min === i) break;
+      [this.data[min], this.data[i]] = [this.data[i], this.data[min]];
+      i = min;
+    }
+  }
+}
+
+function aStar(grid, sx, sy, ex, ey) {
+  sx = Math.round(sx); sy = Math.round(sy);
+  ex = Math.round(ex); ey = Math.round(ey);
+  if (sx < 0 || sx >= TW || sy < 0 || sy >= TH) return null;
+  if (ex < 0 || ex >= TW || ey < 0 || ey >= TH) return null;
+  if (!grid[sy * TW + sx] || !grid[ey * TW + ex]) return null;
+  if (sx === ex && sy === ey) return [[sx, sy]];
+
+  const DIRS = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+  const COSTS = [Math.SQRT2, 1, Math.SQRT2, 1, 1, Math.SQRT2, 1, Math.SQRT2];
+  const gScore = new Float32Array(TW * TH).fill(Infinity);
+  const cameFrom = new Int32Array(TW * TH).fill(-1);
+  const closed = new Uint8Array(TW * TH);
+  gScore[sy * TW + sx] = 0;
+  const heap = new MinHeap();
+  heap.push({ f: Math.hypot(ex - sx, ey - sy), x: sx, y: sy });
+
+  while (heap.size > 0) {
+    const cur = heap.pop();
+    const cx = cur.x, cy2 = cur.y;
+    const ci = cy2 * TW + cx;
+    if (closed[ci]) continue;
+    closed[ci] = 1;
+    if (cx === ex && cy2 === ey) {
+      // reconstruct
+      const path = [];
+      let idx = ey * TW + ex;
+      while (idx !== -1) {
+        const px = idx % TW, py = Math.floor(idx / TW);
+        path.push([px, py]);
+        idx = cameFrom[idx];
+      }
+      path.reverse();
+      return path;
+    }
+    const cg = gScore[ci];
+    for (let d = 0; d < 8; d++) {
+      const nx = cx + DIRS[d][0], ny = cy2 + DIRS[d][1];
+      if (nx < 0 || nx >= TW || ny < 0 || ny >= TH) continue;
+      const ni = ny * TW + nx;
+      if (!grid[ni] || closed[ni]) continue;
+      const ng = cg + COSTS[d];
+      if (ng < gScore[ni]) {
+        gScore[ni] = ng;
+        cameFrom[ni] = ci;
+        heap.push({ f: ng + Math.hypot(ex - nx, ey - ny), x: nx, y: ny });
+      }
+    }
+  }
+  return null;
+}
+
+function bresenhamPassable(grid, x0, y0, x1, y1) {
+  let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  while (true) {
+    if (x0 < 0 || x0 >= TW || y0 < 0 || y0 >= TH) return false;
+    if (!grid[y0 * TW + x0]) return false;
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx)  { err += dx; y0 += sy; }
+  }
+  return true;
+}
+
+function smoothPath(path, grid) {
+  if (!path || path.length <= 2) return path;
+  const result = [path[0]];
+  let i = 0;
+  while (i < path.length - 1) {
+    let farthest = i + 1;
+    for (let j = i + 2; j < path.length; j++) {
+      if (bresenhamPassable(grid, path[i][0], path[i][1], path[j][0], path[j][1])) {
+        farthest = j;
+      } else break;
+    }
+    result.push(path[farthest]);
+    i = farthest;
+  }
+  return result;
+}
+
+// ── Find placed unit at canvas pixel ──────────────────────────────────────────
+function findUnitAt(cpx, cpy) {
+  const W = canvas.width, H = canvas.height;
+  const scaleX = W / TW, scaleY = H / TH;
+  const dispScale = Math.min(scaleX, scaleY);
+  for (let i = 0; i < placedUnits.length; i++) {
+    const u = placedUnits[i];
+    if (Math.hypot(cpx - u.x * scaleX, cpy - u.y * scaleY) <= scaledRadius(u.type) * dispScale) return i;
+  }
+  return null;
+}
+
 // ── Coordinate helpers ─────────────────────────────────────────────────────────
 function toWorld(cx, cy) {
   return { x: cx * TW / canvas.width, y: cy * TH / canvas.height };
@@ -637,6 +842,7 @@ function applyBrush(wx, wy) {
   gradMap = computeGradientMap(terrain);
   isoSegments = buildIsolineSegments(terrain);
   buildTerrainImage();
+  rebuildReachGrids();
 }
 
 // ── Draw frame ─────────────────────────────────────────────────────────────────
@@ -722,6 +928,93 @@ function drawFrame() {
   }
   ctx.restore();
 
+  // 2b. Draw placed units
+  {
+    const dsUnit = Math.min(scaleX, scaleY);
+    for (const u of placedUnits) {
+      const type = u.type;
+      const gx = Math.round(u.x), gy = Math.round(u.y);
+      const valid = reachGrids[type] && reachGrids[type][gy * TW + gx] === 1;
+      const ucx = u.x * scaleX, ucy = u.y * scaleY;
+      const rPx = scaledRadius(type) * dsUnit;
+
+      // Draw path if order exists
+      if (u.order && u.order.path && u.order.path.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,215,0,0.7)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(u.order.path[0][0] * scaleX, u.order.path[0][1] * scaleY);
+        for (let pi = 1; pi < u.order.path.length; pi++) {
+          ctx.lineTo(u.order.path[pi][0] * scaleX, u.order.path[pi][1] * scaleY);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Target marker
+        const tx = u.order.tx * scaleX, ty = u.order.ty * scaleY;
+        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tx - 5, ty); ctx.lineTo(tx + 5, ty);
+        ctx.moveTo(tx, ty - 5); ctx.lineTo(tx, ty + 5);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Unit circle
+      const fillColor = valid ? 'rgba(80,210,80,0.18)' : 'rgba(220,60,60,0.18)';
+      const strokeColor = valid ? 'rgba(80,210,80,0.9)' : 'rgba(220,60,60,0.9)';
+      ctx.save();
+      ctx.fillStyle = fillColor;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ucx, ucy, rPx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Label
+      const labels = { infantry: 'I', cavalry: 'C', artillery: 'A' };
+      const fontSize = Math.max(9, dsUnit * scaledRadius(type) * 0.65);
+      ctx.fillStyle = 'rgba(255,240,200,0.9)';
+      ctx.font = `bold ${fontSize}px Georgia`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labels[type], ucx, ucy);
+      ctx.restore();
+    }
+
+    // Sidebar drag preview
+    if (draggingUnit && dragPos) {
+      const type = draggingUnit.type;
+      const gx = Math.round(dragPos.x), gy = Math.round(dragPos.y);
+      const valid = reachGrids[type] && reachGrids[type][gy * TW + gx] === 1;
+      const cp2 = toCanvas(dragPos.x, dragPos.y);
+      const rPx = scaledRadius(type) * dsUnit;
+      const fillColor = valid ? 'rgba(80,210,80,0.18)' : 'rgba(220,60,60,0.18)';
+      const strokeColor = valid ? 'rgba(80,210,80,0.9)' : 'rgba(220,60,60,0.9)';
+      const labels = { infantry: 'I', cavalry: 'C', artillery: 'A' };
+      ctx.save();
+      ctx.fillStyle = fillColor;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cp2.x, cp2.y, rPx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      const fontSize = Math.max(9, dsUnit * scaledRadius(type) * 0.65);
+      ctx.fillStyle = 'rgba(255,240,200,0.9)';
+      ctx.font = `bold ${fontSize}px Georgia`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labels[type], cp2.x, cp2.y);
+      ctx.restore();
+    }
+  }
+
   // 3. Early-return if no mouseWorld
   if (!mouseWorld) return;
 
@@ -764,6 +1057,40 @@ function drawFrame() {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  // 7b. Move-order path preview
+  if (movingUnit !== null) {
+    if (movingUnit.path && movingUnit.path.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(100,200,100,0.8)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(movingUnit.path[0][0] * scaleX, movingUnit.path[0][1] * scaleY);
+      for (let pi = 1; pi < movingUnit.path.length; pi++) {
+        ctx.lineTo(movingUnit.path[pi][0] * scaleX, movingUnit.path[pi][1] * scaleY);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (movingUnit.targetWorld) {
+      const mu = placedUnits[movingUnit.index];
+      const tgx = Math.round(movingUnit.targetWorld.x), tgy = Math.round(movingUnit.targetWorld.y);
+      const tValid = mu && reachGrids[mu.type] && tgx >= 0 && tgx < TW && tgy >= 0 && tgy < TH && reachGrids[mu.type][tgy * TW + tgx] === 1;
+      const tcp = toCanvas(movingUnit.targetWorld.x, movingUnit.targetWorld.y);
+      ctx.save();
+      ctx.strokeStyle = tValid ? 'rgba(80,210,80,0.9)' : 'rgba(220,60,60,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(tcp.x, tcp.y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(tcp.x - 6, tcp.y); ctx.lineTo(tcp.x + 6, tcp.y);
+      ctx.moveTo(tcp.x, tcp.y - 6); ctx.lineTo(tcp.x, tcp.y + 6);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // 8. Ring outlines — green solid if pass, red dashed if blocked; size differentiates units
@@ -917,9 +1244,17 @@ function init() {
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
 canvas.addEventListener('mousedown', e => {
-  isPainting = true;
+  if (draggingUnit) return;
   const rect = canvas.getBoundingClientRect();
-  mouseWorld = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+  const cpx = e.clientX - rect.left, cpy = e.clientY - rect.top;
+  mouseWorld = toWorld(cpx, cpy);
+  const hitIdx = findUnitAt(cpx, cpy);
+  if (hitIdx !== null) {
+    movingUnit = { index: hitIdx, targetWorld: null, path: null, lastEx: null, lastEy: null };
+    isPainting = false;
+    return;
+  }
+  isPainting = true;
   if (brushMode === 'level') levelTarget = sampleE(mouseWorld.x, mouseWorld.y);
   applyBrush(mouseWorld.x, mouseWorld.y);
   drawFrame();
