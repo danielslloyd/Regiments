@@ -1237,6 +1237,7 @@ function init() {
   terrain = generateTerrain(seed);
   gradMap = computeGradientMap(terrain);
   isoSegments = buildIsolineSegments(terrain);
+  rebuildReachGrids();
   resizeCanvas();
   offCanvas = null;
   rebuildAndDraw();
@@ -1263,14 +1264,47 @@ canvas.addEventListener('mousedown', e => {
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
   mouseWorld = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+  if (movingUnit !== null) {
+    movingUnit.targetWorld = mouseWorld;
+    const ex = Math.round(mouseWorld.x), ey = Math.round(mouseWorld.y);
+    if (ex !== movingUnit.lastEx || ey !== movingUnit.lastEy) {
+      movingUnit.lastEx = ex;
+      movingUnit.lastEy = ey;
+      const mu = placedUnits[movingUnit.index];
+      if (mu) {
+        const rawPath = aStar(reachGrids[mu.type], mu.x, mu.y, ex, ey);
+        movingUnit.path = rawPath ? smoothPath(rawPath, reachGrids[mu.type]) : null;
+      }
+    }
+    drawFrame();
+    return;
+  }
+  if (draggingUnit !== null) {
+    drawFrame();
+    return;
+  }
   if (isPainting) applyBrush(mouseWorld.x, mouseWorld.y);
   drawFrame();
 });
 
-canvas.addEventListener('mouseup', () => { isPainting = false; });
+canvas.addEventListener('mouseup', () => {
+  if (movingUnit !== null) {
+    if (movingUnit.path && movingUnit.path.length > 0) {
+      const last = movingUnit.path[movingUnit.path.length - 1];
+      placedUnits[movingUnit.index].order = { tx: last[0], ty: last[1], path: movingUnit.path };
+    }
+    movingUnit = null;
+    drawFrame();
+    return;
+  }
+  isPainting = false;
+});
 
 canvas.addEventListener('mouseleave', () => {
   isPainting = false;
+  movingUnit = null;
+  draggingUnit = null;
+  dragPos = null;
   mouseWorld = null;
   drawFrame();
   clearSidebar();
@@ -1279,6 +1313,7 @@ canvas.addEventListener('mouseleave', () => {
 document.getElementById('size-slider').addEventListener('input', function() {
   sizeScale = parseFloat(this.value);
   document.getElementById('size-label').textContent = `Scale: ${sizeScale.toFixed(2)}\u00d7`;
+  rebuildReachGrids();
   if (overlayMode === 'reachability') buildTerrainImage();
   drawFrame();
 });
@@ -1290,6 +1325,7 @@ document.getElementById('ratio-slider').addEventListener('input', function() {
   const artMult = s.toFixed(2);
   document.getElementById('ratio-label').textContent =
     `Ratio: inf 1\u00d7 / cav ${cavMult}\u00d7 / art ${artMult}\u00d7`;
+  rebuildReachGrids();
   if (overlayMode === 'reachability') buildTerrainImage();
   drawFrame();
 });
@@ -1298,6 +1334,7 @@ document.getElementById('contour-slider').addEventListener('input', function() {
   contourInterval = parseFloat(this.value);
   ISO_LEVELS = computeIsoLevels(contourInterval);
   isoSegments = buildIsolineSegments(terrain);
+  rebuildReachGrids();
   document.getElementById('contour-label').textContent =
     `Interval: ${contourInterval.toFixed(2)} \u2014 ${ISO_LEVELS.length} line${ISO_LEVELS.length !== 1 ? 's' : ''}`;
   offCanvas = null;
@@ -1329,6 +1366,7 @@ document.querySelectorAll('.brush-btn').forEach(btn => {
 
 document.getElementById('btn-new-terrain').addEventListener('click', () => {
   seed = Math.floor(Math.random() * 999999);
+  placedUnits = [];
   offCanvas = null;
   init();
 });
@@ -1337,6 +1375,53 @@ window.addEventListener('resize', () => {
   resizeCanvas();
   offCanvas = null;
   rebuildAndDraw();
+});
+
+// ── Sidebar drag (document-level) ─────────────────────────────────────────────
+document.addEventListener('mousedown', e => {
+  const icon = e.target.closest('.unit-icon');
+  if (icon) {
+    e.preventDefault();
+    draggingUnit = { type: icon.dataset.type };
+  }
+});
+
+document.addEventListener('mousemove', e => {
+  if (!draggingUnit) return;
+  const rect = canvas.getBoundingClientRect();
+  const cpx = e.clientX - rect.left;
+  const cpy = e.clientY - rect.top;
+  if (cpx >= 0 && cpx < rect.width && cpy >= 0 && cpy < rect.height) {
+    dragPos = toWorld(cpx, cpy);
+  } else {
+    dragPos = null;
+  }
+  drawFrame();
+});
+
+document.addEventListener('mouseup', e => {
+  if (!draggingUnit) return;
+  if (dragPos !== null) {
+    const gx = Math.round(dragPos.x), gy = Math.round(dragPos.y);
+    if (gx >= 0 && gx < TW && gy >= 0 && gy < TH && reachGrids[draggingUnit.type] && reachGrids[draggingUnit.type][gy * TW + gx]) {
+      placedUnits.push({ type: draggingUnit.type, x: dragPos.x, y: dragPos.y, order: null });
+    }
+  }
+  draggingUnit = null;
+  dragPos = null;
+  drawFrame();
+});
+
+// ── Right-click to remove placed unit ─────────────────────────────────────────
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const cpx = e.clientX - rect.left, cpy = e.clientY - rect.top;
+  const hitIdx = findUnitAt(cpx, cpy);
+  if (hitIdx !== null) {
+    placedUnits.splice(hitIdx, 1);
+    drawFrame();
+  }
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────────
