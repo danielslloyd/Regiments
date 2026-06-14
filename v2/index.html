@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regiments</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Regiments</h1>
+        <nav>
+            <button id="tab-editor" class="tab active">Level Editor</button>
+            <button id="tab-play" class="tab">Play</button>
+        </nav>
+        <span id="status-bar"></span>
+    </header>
+
+    <main>
+        <aside id="editor-panel">
+            <section>
+                <h3>Generate</h3>
+                <div class="row">
+                    <input type="number" id="gen-seed" placeholder="Random seed">
+                    <select id="gen-style">
+                        <option value="rolling">Rolling Hills</option>
+                        <option value="flat">River Plains</option>
+                        <option value="rugged">Rugged</option>
+                    </select>
+                </div>
+                <button id="btn-generate" class="wide">Generate Map</button>
+            </section>
+
+            <section>
+                <h3>Terrain Brushes</h3>
+                <div class="tool-grid">
+                    <button data-tool="raise" class="active">Raise</button>
+                    <button data-tool="lower">Lower</button>
+                    <button data-tool="smooth">Smooth</button>
+                    <button data-tool="forest">Forest</button>
+                    <button data-tool="clear">Clear</button>
+                </div>
+                <label>Brush size
+                    <input type="range" id="brush-radius" min="10" max="200" value="70">
+                </label>
+                <label>Strength
+                    <input type="range" id="brush-strength" min="0.05" max="1.5" step="0.05" value="0.2">
+                </label>
+            </section>
+
+            <section>
+                <h3>Streams</h3>
+                <div class="tool-grid">
+                    <button data-tool="river">Source</button>
+                </div>
+                <label>Stream size
+                    <input type="range" id="stream-size" min="1" max="4" step="1" value="2">
+                </label>
+                <p class="hint">Click near an edge to add a river inlet, or drag an existing inlet to move it. Water enters from the map border, flows downhill, pools into lakes, and spills onward. Reshaping terrain re-routes the rivers. Use Clear to remove an inlet.</p>
+            </section>
+
+            <section>
+                <h3>Units</h3>
+                <div class="tool-grid">
+                    <button data-tool="unit">Place</button>
+                    <button data-tool="erase-unit">Erase</button>
+                </div>
+                <div class="row">
+                    <select id="unit-side">
+                        <option value="1">Blue</option>
+                        <option value="2">Red</option>
+                    </select>
+                    <select id="unit-type">
+                        <option value="infantry">Infantry</option>
+                        <option value="cavalry">Cavalry</option>
+                        <option value="artillery">Artillery</option>
+                    </select>
+                </div>
+                <button id="btn-clear-units" class="wide">Clear All Units</button>
+            </section>
+
+            <section>
+                <h3>Level</h3>
+                <div class="row">
+                    <button id="btn-save">Save</button>
+                    <button id="btn-load">Load</button>
+                </div>
+            </section>
+        </aside>
+
+        <aside id="play-panel" style="display:none">
+            <section>
+                <h3>Battle</h3>
+                <p id="battle-status" class="status"></p>
+                <button id="btn-pause" class="wide">Pause</button>
+                <div class="row">
+                    <button data-speed="1" class="active">1x</button>
+                    <button data-speed="2">2x</button>
+                    <button data-speed="4">4x</button>
+                </div>
+                <button id="btn-restart" class="wide">Restart Battle</button>
+            </section>
+            <section>
+                <h3>How to play</h3>
+                <p class="hint">Click or drag to select blue companies. Right-click to order a move. Companies march in column and deploy into line to fight. Scroll to zoom, middle-drag to pan.</p>
+            </section>
+        </aside>
+
+        <div id="canvas-wrap">
+            <canvas id="canvas"></canvas>
+        </div>
+    </main>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
