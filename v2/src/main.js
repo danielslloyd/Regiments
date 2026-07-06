@@ -143,6 +143,31 @@ class App {
                 this.game.reset();
             }
         });
+
+        // Battle order buttons
+        document.getElementById('btn-holdline').addEventListener('click', () => this.game.setCommandMode('holdline'));
+        document.getElementById('btn-digin').addEventListener('click', () => this.game.orderDigIn());
+        document.getElementById('btn-stop').addEventListener('click', () => this.game.orderStop());
+        document.getElementById('ai-difficulty').addEventListener('change', e => {
+            this.game.ai.difficulty = e.target.value;
+        });
+
+        // Keyboard shortcuts (play mode only; ignore while typing in a field)
+        window.addEventListener('keydown', e => {
+            if (this.mode !== 'play') return;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            switch (e.key.toLowerCase()) {
+                case 'h': this.game.setCommandMode('holdline'); break;
+                case 'd': this.game.orderDigIn(); break;
+                case 's': this.game.orderStop(); break;
+                case 'escape':
+                    this.game.commandMode = 'select';
+                    this.game.lineStart = this.game.lineEnd = null;
+                    this.game.updateCommandButtons();
+                    break;
+            }
+        });
     }
 
     flashStatus(msg) {

@@ -17,6 +17,11 @@ export const SIDE_COLORS = {
     2: { main: '#9e2b25', light: '#c95f57' }
 };
 
+// Seconds of stationary work to fully entrench.
+const DIG_IN_TIME = 6;
+// Below this range the enemy is at the parapet and earthworks no longer shield.
+const HAND_TO_HAND = 22;
+
 let nextId = 1;
 
 export class Company {
@@ -39,6 +44,18 @@ export class Company {
         this.pathIndex = 0;
         this.fireCooldown = 0;
         this.target = null;
+        // Defensive works: 0 = in the open, 1 = fully entrenched.
+        this.entrenchment = 0;
+        this.digInOrdered = false;
+        // Hold-line orders: hold a position and face a fixed direction.
+        this.holding = false;
+        this.holdFacing = null;
+        this.holdTarget = null;
+        // Recomputed each frame from the tactical situation.
+        this.incomingMult = 1;
+        this.flanked = false;
+        // Set by the AI to remember where it last sent this company.
+        this.aiGoal = null;
         // Soldier dots: current positions + formation slot offsets
         this.dots = [];
         for (let i = 0; i < this.men; i++) {
@@ -55,6 +72,44 @@ export class Company {
         this.pathIndex = 0;
         this.target = null;
         this.state = path && path.length > 1 ? 'moving' : 'idle';
+        // Marching abandons any earthworks and cancels the dig-in effort.
+        if (this.state === 'moving') {
+            this.entrenchment = 0;
+            this.digInOrdered = false;
+        }
+    }
+
+    // Order the unit to entrench where it stands. It only makes progress while
+    // stationary (see update); issuing a move cancels it.
+    orderDigIn() {
+        if (this.state === 'routing') return;
+        this.digInOrdered = true;
+    }
+
+    // Halt in place, dropping any move/hold order (keeps entrenchment).
+    orderStop() {
+        if (this.state === 'routing') return;
+        this.path = null;
+        this.holding = false;
+        this.holdTarget = null;
+        if (this.state === 'moving') this.state = 'idle';
+    }
+
+    // Effective firing range, extended a little when shooting downhill.
+    effectiveRange(map, target) {
+        const dz = elevationAt(map, this.x, this.y) - elevationAt(map, target.x, target.y);
+        return this.stats.range * (1 + Math.max(0, dz) * 0.04);
+    }
+
+    // Fire a volley at target, factoring in the high-ground advantage and the
+    // offensive edge from being dug in. Defensive modifiers (cover, earthworks,
+    // flanking) are applied on the receiving end via incomingMult.
+    fireAt(target, map) {
+        const dz = elevationAt(map, this.x, this.y) - elevationAt(map, target.x, target.y);
+        const highGround = 1 + Math.max(-0.4, Math.min(0.7, dz * 0.13));
+        const dugOffense = 1 + this.entrenchment * 0.2;
+        const volley = this.men * this.stats.firepower * 0.08 * highGround * dugOffense;
+        target.takeCasualties(volley);
     }
 
     // Formation slot offsets in local space (x = along facing, y = across).
@@ -131,13 +186,45 @@ export class Company {
         if (!this.alive) return;
         this.fireCooldown = Math.max(0, this.fireCooldown - dt);
 
-        // --- Find enemy in range ---
+        // --- Survey nearby enemies ---
         let nearest = null, nearestDist = Infinity;
+        const threats = [];
         for (const other of companies) {
             if (other.side === this.side || !other.alive) continue;
-            const d = Math.hypot(other.x - this.x, other.y - this.y);
+            const dx = other.x - this.x, dy = other.y - this.y;
+            const d = Math.hypot(dx, dy);
             if (d < nearestDist) { nearestDist = d; nearest = other; }
+            if (d < this.stats.range * 1.5) threats.push(Math.atan2(dy, dx));
         }
+
+        // --- Flanking: fire arriving from a wide arc is far more demoralizing
+        // and deadly than a clean frontal fight. Measure the angular arc the
+        // attackers occupy; a spread beyond ~145 deg counts as being flanked.
+        this.flanked = false;
+        let flankFactor = 0;
+        if (threats.length >= 2) {
+            threats.sort((a, b) => a - b);
+            let maxGap = (threats[0] + Math.PI * 2) - threats[threats.length - 1];
+            for (let i = 1; i < threats.length; i++) maxGap = Math.max(maxGap, threats[i] - threats[i - 1]);
+            const spread = Math.PI * 2 - maxGap;
+            if (spread > Math.PI * 0.8) {
+                this.flanked = true;
+                flankFactor = Math.min(1, (spread - Math.PI * 0.8) / (Math.PI * 0.9));
+            }
+        }
+
+        // --- Entrenchment: build while ordered and stationary, lost on the march.
+        if (this.digInOrdered && this.state !== 'moving' && this.state !== 'routing') {
+            this.entrenchment = Math.min(1, this.entrenchment + dt / DIG_IN_TIME);
+        }
+
+        // --- Situational incoming-damage multiplier (used by takeCasualties). ---
+        let incoming = 1;
+        const closeUp = nearestDist < HAND_TO_HAND;
+        if (this.entrenchment > 0 && !closeUp) incoming *= 1 - this.entrenchment * 0.55;
+        if (isForestAt(map, this.x, this.y)) incoming *= 0.75;
+        if (flankFactor > 0) incoming *= 1 + flankFactor * 0.7;
+        this.incomingMult = incoming;
 
         if (this.state === 'routing') {
             // Flee toward own map edge; recover when far from enemies.
@@ -146,11 +233,11 @@ export class Company {
             this.x += Math.cos(fleeDir) * this.stats.speed * 1.2 * dt;
             this.y += (Math.random() - 0.5) * 10 * dt;
             this.morale += dt * 4;
-            if (this.morale >= 50 || nearestDist > 300) {
+            if (this.morale >= 50 || nearestDist > 320) {
                 this.morale = Math.max(this.morale, 50);
                 this.state = 'idle';
             }
-        } else if (nearest && nearestDist <= this.stats.range) {
+        } else if (nearest && nearestDist <= this.effectiveRange(map, nearest)) {
             // --- Fighting: halt, face the enemy, exchange fire ---
             this.state = 'fighting';
             this.path = null;
@@ -158,9 +245,10 @@ export class Company {
             this.target = nearest;
             if (this.fireCooldown <= 0) {
                 this.fireCooldown = 1.2;
-                const volley = this.men * this.stats.firepower * 0.08;
-                nearest.takeCasualties(volley);
+                this.fireAt(nearest, map);
             }
+            // Being enveloped saps nerve even mid-fight.
+            if (flankFactor > 0) this.morale = Math.max(0, this.morale - dt * 7 * flankFactor);
         } else {
             if (this.state === 'fighting') this.state = 'idle';
             this.target = null;
@@ -185,9 +273,12 @@ export class Company {
                     this.path = null;
                     this.state = 'idle';
                 }
+            } else if (this.holding && this.holdFacing != null) {
+                // Arrived on the hold line: dress the ranks to the ordered facing.
+                this.facing = this.holdFacing;
             }
-            // Slow morale recovery when out of combat
-            this.morale = Math.min(100, this.morale + dt * 2);
+            // Slow morale recovery when out of combat; entrenched troops rally faster.
+            this.morale = Math.min(100, this.morale + dt * (2 + this.entrenchment * 2));
         }
 
         // --- Move dots toward formation slots ---
@@ -202,19 +293,29 @@ export class Company {
     }
 
     takeCasualties(amount) {
+        // Cover, earthworks, and flanking modify how much fire actually tells.
+        amount *= this.incomingMult;
         // Fractional casualties accumulate
         this._pendingCasualties = (this._pendingCasualties || 0) + amount;
+        // Dug-in troops keep their composure under fire; a steady position is
+        // worth a good deal of nerve.
+        const moraleHit = (100 / this.stats.men) * 1.5 * (1 - this.entrenchment * 0.35);
         while (this._pendingCasualties >= 1 && this.men > 0) {
             this._pendingCasualties -= 1;
             const alive = this.dots.filter(d => d.alive);
             const victim = alive[Math.floor(Math.random() * alive.length)];
             victim.alive = false;
             this.men--;
-            this.morale -= 100 / this.stats.men * 1.5;
+            this.morale -= moraleHit;
         }
-        if (this.morale < 25 && this.state !== 'routing' && this.alive) {
+        // Entrenched men hold their ground far longer before breaking.
+        const routThreshold = this.entrenchment > 0.3 ? 12 : 25;
+        if (this.morale < routThreshold && this.state !== 'routing' && this.alive) {
             this.state = 'routing';
             this.path = null;
+            this.holding = false;
+            this.digInOrdered = false;
+            this.entrenchment = 0;
         }
         this.morale = Math.max(0, this.morale);
     }
@@ -243,6 +344,25 @@ export class Company {
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.globalAlpha = 1;
+        }
+
+        // Earthworks: a berm drawn across the unit's front, darkening and
+        // thickening as the entrenchment deepens. A faint pulse shows digging
+        // still in progress.
+        if (this.entrenchment > 0.02) {
+            const fx = Math.cos(this.facing), fy = Math.sin(this.facing);
+            const px = -fy, py = fx;
+            const off = 11, halfW = 15;
+            const cx = this.x + fx * off, cy = this.y + fy * off;
+            const digging = this.digInOrdered && this.entrenchment < 1;
+            ctx.strokeStyle = `rgba(74,58,38,${0.35 + 0.55 * this.entrenchment})`;
+            ctx.lineWidth = 1.2 + 3 * this.entrenchment;
+            ctx.setLineDash(digging ? [3, 3] : []);
+            ctx.beginPath();
+            ctx.moveTo(cx - px * halfW, cy - py * halfW);
+            ctx.lineTo(cx + px * halfW, cy + py * halfW);
+            ctx.stroke();
+            ctx.setLineDash([]);
         }
 
         const flash = this.state === 'fighting' && this.fireCooldown > 1.05;

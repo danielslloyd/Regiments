@@ -107,7 +107,20 @@ label {
 }
 input[type="range"] { width: 100%; }
 
+.key {
+    display: inline-block;
+    font-size: 10px;
+    color: #d4b876;
+    border: 1px solid #6b5d45;
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-left: 2px;
+    opacity: 0.8;
+}
+button.active .key { color: #f4e8c8; border-color: #d4b876; }
+
 .hint, .status { font-size: 12px; line-height: 1.5; color: #b8a87f; }
+.hint em { color: #d4b876; font-style: normal; }
 .status { margin-bottom: 8px; min-height: 18px; color: #e8dcc0; }
 
 #canvas-wrap {

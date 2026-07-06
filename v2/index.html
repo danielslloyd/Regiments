@@ -100,9 +100,32 @@
                 </div>
                 <button id="btn-restart" class="wide">Restart Battle</button>
             </section>
+
+            <section>
+                <h3>Orders</h3>
+                <button id="btn-holdline" class="wide">Hold Line&nbsp;<span class="key">H</span></button>
+                <div class="row">
+                    <button id="btn-digin">Dig In <span class="key">D</span></button>
+                    <button id="btn-stop">Halt <span class="key">S</span></button>
+                </div>
+                <p class="hint">Select companies, click <em>Hold Line</em>, then drag a line on the map. Infantry man the line, guns fall back to the rear, cavalry take the flanks — all facing the enemy. <em>Dig In</em> entrenches for a heavy defensive bonus (hold high ground for more).</p>
+            </section>
+
+            <section>
+                <h3>Enemy AI</h3>
+                <label>Difficulty
+                    <select id="ai-difficulty">
+                        <option value="easy">Cautious</option>
+                        <option value="normal" selected>Seasoned</option>
+                        <option value="hard">Ruthless</option>
+                    </select>
+                </label>
+                <p class="hint">The red army maneuvers on its own: seizing high ground, forming combined-arms lines, entrenching on the defensive, flanking with cavalry, and pressing when your morale breaks.</p>
+            </section>
+
             <section>
                 <h3>How to play</h3>
-                <p class="hint">Click or drag to select blue companies. Right-click to order a move. Companies march in column and deploy into line to fight. Scroll to zoom, middle-drag to pan.</p>
+                <p class="hint">Click or drag to select blue companies (Shift adds). Right-click to order a move. High ground makes fire more effective against troops below. Scroll to zoom, middle-drag to pan.</p>
             </section>
         </aside>
 
